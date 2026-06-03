@@ -23,10 +23,28 @@ export default function DashboardListPage() {
     useDashboardStore();
   const [createOpen, setCreateOpen] = useState(false);
   const [title, setTitle] = useState('');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   useEffect(() => {
     void loadDashboards();
   }, [loadDashboards]);
+
+  const handleBatchDelete = () => {
+    if (selectedIds.length === 0) return;
+    Modal.confirm({
+      title: '删除仪表盘',
+      content: `确认删除选中的 ${selectedIds.length} 个仪表盘？`,
+      okText: '删除',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: async () => {
+        await Promise.all(selectedIds.map((id) => deleteDashboard(id)));
+        message.success(`已删除 ${selectedIds.length} 个仪表盘`);
+        setSelectedIds([]);
+        void loadDashboards();
+      },
+    });
+  };
 
   const handleCreate = async () => {
     if (!title.trim()) {
@@ -141,13 +159,27 @@ export default function DashboardListPage() {
           </Button>
         </Empty>
       ) : (
-        <Table
-          rowKey="id"
-          loading={loading}
-          columns={columns}
-          dataSource={rows}
-          pagination={{ pageSize: 20, hideOnSinglePage: true }}
-        />
+        <>
+          {selectedIds.length > 0 && (
+            <div style={{ marginBottom: 12, padding: '8px 12px', background: '#e6f4ff', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span>已选择 <strong>{selectedIds.length}</strong> 个仪表盘</span>
+              <Button danger icon={<DeleteOutlined />} onClick={handleBatchDelete}>
+                删除
+              </Button>
+            </div>
+          )}
+          <Table
+            rowKey="id"
+            loading={loading}
+            columns={columns}
+            dataSource={rows}
+            rowSelection={{
+              selectedRowKeys: selectedIds,
+              onChange: (keys) => setSelectedIds(keys as string[]),
+            }}
+            pagination={{ pageSize: 20, hideOnSinglePage: true }}
+          />
+        </>
       )}
 
       <Modal
