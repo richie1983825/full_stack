@@ -129,19 +129,16 @@ export default function DataSourcePage() {
       title: '名称',
       dataIndex: 'name',
       render: (name: string, record) => (
-        <Space>
-          <DbTypeIcon type={record.dbType} size={18} />
-          <a onClick={() => openEdit(record)} style={{ cursor: 'pointer' }}>
-            {name}
-          </a>
-        </Space>
+        <a onClick={() => openEdit(record)} style={{ cursor: 'pointer' }}>
+          {name}
+        </a>
       ),
     },
     {
       title: '类型',
       dataIndex: 'dbType',
-      width: 100,
-      render: (t: string) => t?.toUpperCase() ?? '—',
+      width: 60,
+      render: (t: string) => <DbTypeIcon type={t} size={20} />,
     },
     { title: '主机', dataIndex: 'host', width: 140 },
     { title: '端口', dataIndex: 'port', width: 80 },
