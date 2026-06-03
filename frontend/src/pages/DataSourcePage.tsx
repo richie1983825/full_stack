@@ -5,16 +5,15 @@ import {
   Input,
   InputNumber,
   Modal,
-  Popconfirm,
   Select,
   Space,
   Table,
-  Tag,
   message,
 } from 'antd';
-import { DatabaseOutlined, PlusOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { datasourceApi } from '../api/datasource';
+import DbTypeIcon from '../components/Charts/DbTypeIcon';
 import type {
   CreateDataSourcePayload,
   DataSource,
@@ -31,16 +30,16 @@ export default function DataSourcePage() {
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingDs, setEditingDs] = useState<DataSource | null>(null);
-  const [testing, setTesting] = useState(false);
   const [form] = Form.useForm();
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const loadData = async () => {
     setLoading(true);
     try {
       const list = await datasourceApi.list();
       setDataSources(list);
-    } catch (err) {
-      message.error(err instanceof Error ? err.message : '加载失败');
+    } catch {
+      message.error('加载失败');
     } finally {
       setLoading(false);
     }
@@ -69,23 +68,6 @@ export default function DataSourcePage() {
       username: ds.username,
     });
     setModalOpen(true);
-  };
-
-  const handleTestConnection = async () => {
-    try {
-      const values = await form.validateFields();
-      setTesting(true);
-      if (!values.host || !values.database || !values.username) {
-        message.warning('请填写完整的连接信息');
-        setTesting(false);
-        return;
-      }
-      message.success('连接测试通过');
-    } catch {
-      message.error('请检查表单填写');
-    } finally {
-      setTesting(false);
-    }
   };
 
   const handleSubmit = async () => {
@@ -125,15 +107,33 @@ export default function DataSourcePage() {
     }
   };
 
+  const handleBatchDelete = () => {
+    if (selectedIds.length === 0) return;
+    Modal.confirm({
+      title: '删除数据源',
+      content: `确认删除选中的 ${selectedIds.length} 个数据源？`,
+      okText: '删除',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: async () => {
+        await Promise.all(selectedIds.map((id) => datasourceApi.delete(id)));
+        message.success(`已删除 ${selectedIds.length} 个数据源`);
+        setSelectedIds([]);
+        void loadData();
+      },
+    });
+  };
+
   const columns: ColumnsType<DataSource> = [
     {
       title: '名称',
       dataIndex: 'name',
-      width: 160,
-      render: (name: string) => (
+      render: (name: string, record) => (
         <Space>
-          <DatabaseOutlined style={{ color: '#1677ff' }} />
-          {name}
+          <DbTypeIcon type={record.dbType} size={18} />
+          <a onClick={() => openEdit(record)} style={{ cursor: 'pointer' }}>
+            {name}
+          </a>
         </Space>
       ),
     },
@@ -141,48 +141,13 @@ export default function DataSourcePage() {
       title: '类型',
       dataIndex: 'dbType',
       width: 100,
-      render: (t: string) => (
-        <Tag color={t === 'postgres' ? 'blue' : 'orange'}>
-          {t?.toUpperCase()}
-        </Tag>
-      ),
+      render: (t: string) => t?.toUpperCase() ?? '—',
     },
     { title: '主机', dataIndex: 'host', width: 140 },
-    {
-      title: '端口',
-      dataIndex: 'port',
-      width: 80,
-    },
+    { title: '端口', dataIndex: 'port', width: 80 },
     { title: '数据库', dataIndex: 'database', width: 140 },
     { title: '用户名', dataIndex: 'username', width: 120 },
-    {
-      title: '描述',
-      dataIndex: 'description',
-      ellipsis: true,
-    },
-    {
-      title: '操作',
-      width: 160,
-      render: (_, record) => (
-        <Space>
-          <Button type="link" size="small" onClick={() => openEdit(record)}>
-            编辑
-          </Button>
-          <Popconfirm
-            title="确认删除该数据源？"
-            onConfirm={async () => {
-              await datasourceApi.delete(record.id);
-              message.success('已删除');
-              void loadData();
-            }}
-          >
-            <Button type="link" size="small" danger>
-              删除
-            </Button>
-          </Popconfirm>
-        </Space>
-      ),
-    },
+    { title: '描述', dataIndex: 'description', ellipsis: true },
   ];
 
   return (
@@ -194,11 +159,23 @@ export default function DataSourcePage() {
         </Button>
       </div>
 
+      {selectedIds.length > 0 && (
+        <div style={{ marginBottom: 12, padding: '8px 12px', background: '#e6f4ff', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span>已选择 <strong>{selectedIds.length}</strong> 个数据源</span>
+          <Button danger icon={<DeleteOutlined />} onClick={handleBatchDelete}>删除</Button>
+        </div>
+      )}
+
       <Table
         rowKey="id"
         loading={loading}
         columns={columns}
         dataSource={dataSources}
+        rowSelection={{
+          selectedRowKeys: selectedIds,
+          onChange: (keys) => setSelectedIds(keys as string[]),
+        }}
+        pagination={{ pageSize: 20, hideOnSinglePage: true }}
       />
 
       <Modal
@@ -212,53 +189,27 @@ export default function DataSourcePage() {
         destroyOnClose
       >
         <Form form={form} layout="vertical">
-          <Form.Item
-            name="name"
-            label="名称"
-            rules={[{ required: true, message: '请输入数据源名称' }]}
-          >
+          <Form.Item name="name" label="名称" rules={[{ required: true, message: '请输入名称' }]}>
             <Input placeholder="例如：生产数据库" />
           </Form.Item>
           <Form.Item name="description" label="描述">
             <Input.TextArea rows={2} placeholder="可选描述" />
           </Form.Item>
-          <Form.Item
-            name="dbType"
-            label="数据库类型"
-            rules={[{ required: true }]}
-          >
+          <Form.Item name="dbType" label="数据库类型" rules={[{ required: true }]}>
             <Select options={dbTypeOptions} />
           </Form.Item>
           <Space style={{ width: '100%' }} align="start">
-            <Form.Item
-              name="host"
-              label="主机地址"
-              rules={[{ required: true, message: '请输入主机地址' }]}
-              style={{ flex: 1 }}
-            >
+            <Form.Item name="host" label="主机地址" rules={[{ required: true }]} style={{ flex: 1 }}>
               <Input placeholder="localhost 或 IP" />
             </Form.Item>
-            <Form.Item
-              name="port"
-              label="端口"
-              rules={[{ required: true }]}
-              style={{ width: 120 }}
-            >
+            <Form.Item name="port" label="端口" rules={[{ required: true }]} style={{ width: 120 }}>
               <InputNumber min={1} max={65535} style={{ width: '100%' }} />
             </Form.Item>
           </Space>
-          <Form.Item
-            name="database"
-            label="数据库名"
-            rules={[{ required: true, message: '请输入数据库名' }]}
-          >
+          <Form.Item name="database" label="数据库名" rules={[{ required: true }]}>
             <Input placeholder="例如：my_database" />
           </Form.Item>
-          <Form.Item
-            name="username"
-            label="用户名"
-            rules={[{ required: true, message: '请输入用户名' }]}
-          >
+          <Form.Item name="username" label="用户名" rules={[{ required: true }]}>
             <Input placeholder="数据库用户名" />
           </Form.Item>
           <Form.Item
@@ -268,13 +219,6 @@ export default function DataSourcePage() {
           >
             <Input.Password placeholder="数据库密码" />
           </Form.Item>
-          {!editingDs && (
-            <Form.Item>
-              <Button onClick={handleTestConnection} loading={testing}>
-                测试连接
-              </Button>
-            </Form.Item>
-          )}
         </Form>
       </Modal>
     </div>
