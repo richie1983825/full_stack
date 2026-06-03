@@ -14,7 +14,6 @@ import {
   BarChartOutlined,
   CameraOutlined,
   CodeOutlined,
-  EditOutlined,
   LineChartOutlined,
   PlusOutlined,
   ReloadOutlined,
@@ -130,48 +129,51 @@ export default function DashboardEditorPage() {
           ) : (
             <h2 style={{ margin: 0 }}>{currentDashboard.title}</h2>
           )}
-          {!editMode && (
-            <Link to={`/dashboards/${id}?edit=true`}>
-              <Button type="primary" icon={<EditOutlined />}>
-                编辑仪表盘
+          <span className="toolbar-label">
+            <Switch
+              checked={editMode}
+              onChange={(checked) => {
+                if (checked) {
+                  window.history.replaceState(null, '', `?edit=true`);
+                } else {
+                  window.history.replaceState(null, '', window.location.pathname);
+                }
+                setEditMode(checked);
+              }}
+              size="small"
+            />
+            <span style={{ marginLeft: 6 }}>编辑模式</span>
+          </span>
+          {editMode && (
+            <>
+              <Dropdown menu={{ items: addMenuItems }}>
+                <Button type="primary" icon={<PlusOutlined />}>
+                  添加组件
+                </Button>
+              </Dropdown>
+              <Button
+                icon={<ReloadOutlined />}
+                onClick={() => void refreshPanelData().then(() => message.success('数据已刷新'))}
+              >
+                刷新数据
               </Button>
-            </Link>
+              <Button icon={<CodeOutlined />} onClick={() => setJsonDrawerOpen(true)}>
+                JSON 配置
+              </Button>
+              <Button icon={<CameraOutlined />} onClick={() => setSnapshotOpen(true)}>
+                快照
+              </Button>
+              <Button
+                type="primary"
+                icon={<SaveOutlined />}
+                loading={saving}
+                onClick={() => void handleSave()}
+              >
+                保存
+              </Button>
+            </>
           )}
         </Space>
-
-        {editMode && (
-          <Space wrap>
-            <span className="toolbar-label">
-              编辑模式
-              <Switch checked={editMode} onChange={setEditMode} size="small" style={{ marginLeft: 8 }} />
-            </span>
-            <Dropdown menu={{ items: addMenuItems }} disabled={!editMode}>
-              <Button type="primary" icon={<PlusOutlined />} disabled={!editMode}>
-                添加组件
-              </Button>
-            </Dropdown>
-            <Button
-              icon={<ReloadOutlined />}
-              onClick={() => void refreshPanelData().then(() => message.success('数据已刷新'))}
-            >
-              刷新数据
-            </Button>
-            <Button icon={<CodeOutlined />} onClick={() => setJsonDrawerOpen(true)}>
-              JSON 配置
-            </Button>
-            <Button icon={<CameraOutlined />} onClick={() => setSnapshotOpen(true)}>
-              快照
-            </Button>
-            <Button
-              type="primary"
-              icon={<SaveOutlined />}
-              loading={saving}
-              onClick={() => void handleSave()}
-            >
-              保存
-            </Button>
-          </Space>
-        )}
       </div>
 
       <DashboardGrid
