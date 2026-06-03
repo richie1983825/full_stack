@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Button, Empty, Input, Modal, Popconfirm, Space, Spin, Table, Tag, message } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
+import { Button, Empty, Input, Modal, Spin, Table, Tag, message } from 'antd';
+import { PlusOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { Link } from 'react-router-dom';
 import { useDashboardStore } from '../stores/useDashboardStore';
@@ -112,31 +112,6 @@ export default function DashboardListPage() {
       dataIndex: 'panelCount',
       width: 80,
     },
-    {
-      title: '操作',
-      width: 120,
-      render: (_, record) => (
-        <Space>
-          <Link to={`/dashboards/${record.id}?edit=true`}>
-            <Button type="link" size="small" icon={<EditOutlined />}>
-              编辑
-            </Button>
-          </Link>
-          <Popconfirm
-            title="确认删除该仪表盘？"
-            onConfirm={async () => {
-              await deleteDashboard(record.id);
-              message.success('已删除');
-              void loadDashboards();
-            }}
-          >
-            <Button type="link" size="small" danger icon={<DeleteOutlined />}>
-              删除
-            </Button>
-          </Popconfirm>
-        </Space>
-      ),
-    },
   ];
 
   return (
@@ -161,7 +136,7 @@ export default function DashboardListPage() {
       ) : (
         <>
           {selectedIds.length > 0 && (
-            <div style={{ marginBottom: 12, padding: '8px 12px', background: '#e6f4ff', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ marginBottom: 12, padding: '8px 12px', background: '#e6f4ff', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 12 }}>
               <span>已选择 <strong>{selectedIds.length}</strong> 个仪表盘</span>
               <Button danger icon={<DeleteOutlined />} onClick={handleBatchDelete}>
                 删除
