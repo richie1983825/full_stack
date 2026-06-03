@@ -45,6 +45,8 @@ function mapSummary(raw: Record<string, unknown>): DashboardSummary {
     title: String(raw.title),
     description: raw.description ? String(raw.description) : undefined,
     panelCount: Number(raw.panelCount ?? 0),
+    parentId: raw.parentId ? String(raw.parentId) : undefined,
+    kind: (raw.kind as 'folder' | 'dashboard') ?? 'dashboard',
     createdAt: String(raw.createdAt),
     updatedAt: String(raw.updatedAt),
   };

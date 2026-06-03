@@ -90,9 +90,12 @@ async fn main() -> std::io::Result<()> {
                     .wrap(auth.clone())
                     .route("/", web::get().to(handlers::list_dashboards))
                     .route("/", web::post().to(handlers::create_dashboard))
+                    .route("/tree", web::get().to(handlers::list_root_items))
                     .route("/{id}", web::get().to(handlers::get_dashboard))
                     .route("/{id}", web::put().to(handlers::update_dashboard))
                     .route("/{id}", web::delete().to(handlers::delete_dashboard))
+                    .route("/{id}/children", web::get().to(handlers::list_children))
+                    .route("/{id}/move", web::put().to(handlers::move_item))
                     .route("/{id}/snapshots", web::get().to(handlers::list_snapshots))
                     .route("/{id}/snapshots", web::post().to(handlers::create_snapshot))
                     .route(

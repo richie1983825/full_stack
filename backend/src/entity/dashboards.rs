@@ -14,6 +14,8 @@ pub struct Model {
     pub variables: Json,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
+    pub parent_id: Option<Uuid>,
+    pub kind: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

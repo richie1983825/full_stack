@@ -53,6 +53,8 @@ export interface DashboardSummary {
   title: string;
   description?: string;
   panelCount: number;
+  parentId?: string;
+  kind: 'folder' | 'dashboard';
   createdAt: string;
   updatedAt: string;
 }

@@ -120,8 +120,8 @@ async fn seed_default_dashboard(manager: &SchemaManager<'_>) -> Result<(), DbErr
     let stmt = Statement::from_sql_and_values(
         DbBackend::Postgres,
         r#"
-        INSERT INTO dashboards (id, title, description, panels, variables)
-        VALUES ($1::uuid, $2, $3, $4::jsonb, $5::jsonb)
+        INSERT INTO dashboards (id, title, description, panels, variables, kind)
+        VALUES ($1::uuid, $2, $3, $4::jsonb, $5::jsonb, $6)
         ON CONFLICT (id) DO NOTHING
         "#,
         [
@@ -130,6 +130,7 @@ async fn seed_default_dashboard(manager: &SchemaManager<'_>) -> Result<(), DbErr
             "默认仪表盘 — 通过 SQL 数据源查询展示".into(),
             panels.into(),
             serde_json::json!({}).into(),
+            "dashboard".into(),
         ],
     );
     manager.get_connection().execute(stmt).await?;

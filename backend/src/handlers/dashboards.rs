@@ -4,7 +4,7 @@ use uuid::Uuid;
 use crate::handlers::AppState;
 use crate::app_middleware::auth::get_user_id;
 use crate::models::{
-    ApiResponse, CreateDashboardRequest, UpdateDashboardRequest,
+    ApiResponse, CreateDashboardRequest, MoveItemRequest, UpdateDashboardRequest,
 };
 use crate::services::{
     auth::{get_user_profile, has_permission, AuthError},
@@ -118,6 +118,48 @@ pub async fn delete_dashboard(
     }
     match dashboards::delete_dashboard(&state.db, path.into_inner()).await {
         Ok(()) => HttpResponse::Ok().json(ApiResponse::success(serde_json::json!({"deleted": true}))),
+        Err(e) => map_error(e),
+    }
+}
+
+/// GET /api/dashboards/tree — 列出根目录项目
+pub async fn list_root_items(state: web::Data<AppState>, req: HttpRequest) -> HttpResponse {
+    if let Err(resp) = require_dashboard_read(&state, &req).await {
+        return resp;
+    }
+    match dashboards::list_root_items(&state.db).await {
+        Ok(data) => HttpResponse::Ok().json(ApiResponse::success(data)),
+        Err(e) => map_error(e),
+    }
+}
+
+/// GET /api/dashboards/{id}/children — 列出子项目
+pub async fn list_children(
+    state: web::Data<AppState>,
+    req: HttpRequest,
+    path: web::Path<Uuid>,
+) -> HttpResponse {
+    if let Err(resp) = require_dashboard_read(&state, &req).await {
+        return resp;
+    }
+    match dashboards::list_children(&state.db, path.into_inner()).await {
+        Ok(data) => HttpResponse::Ok().json(ApiResponse::success(data)),
+        Err(e) => map_error(e),
+    }
+}
+
+/// PUT /api/dashboards/{id}/move — 移动项目
+pub async fn move_item(
+    state: web::Data<AppState>,
+    req: HttpRequest,
+    path: web::Path<Uuid>,
+    body: web::Json<MoveItemRequest>,
+) -> HttpResponse {
+    if let Err(resp) = require_dashboard_write(&state, &req).await {
+        return resp;
+    }
+    match dashboards::move_item(&state.db, path.into_inner(), body.into_inner()).await {
+        Ok(data) => HttpResponse::Ok().json(ApiResponse::success(data)),
         Err(e) => map_error(e),
     }
 }

@@ -10,6 +10,8 @@ pub struct DashboardDto {
     pub description: Option<String>,
     pub panels: Value,
     pub variables: Value,
+    pub parent_id: Option<Uuid>,
+    pub kind: String,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -21,6 +23,8 @@ pub struct DashboardSummaryDto {
     pub title: String,
     pub description: Option<String>,
     pub panel_count: usize,
+    pub parent_id: Option<Uuid>,
+    pub kind: String,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -32,6 +36,8 @@ pub struct CreateDashboardRequest {
     pub description: Option<String>,
     pub panels: Option<Value>,
     pub variables: Option<Value>,
+    pub parent_id: Option<Uuid>,
+    pub kind: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -41,4 +47,11 @@ pub struct UpdateDashboardRequest {
     pub description: Option<String>,
     pub panels: Option<Value>,
     pub variables: Option<Value>,
+    pub parent_id: Option<Uuid>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MoveItemRequest {
+    pub parent_id: Option<Uuid>,
 }

@@ -20,6 +20,9 @@ export const endpoints = {
   // legacy mock endpoints (保留兼容旧模块)
   dashboards: '/dashboards/',
   dashboard: (id: string) => `/dashboards/${id}`,
+  dashboardTree: '/dashboards/tree',
+  dashboardChildren: (id: string) => `/dashboards/${id}/children`,
+  dashboardMove: (id: string) => `/dashboards/${id}/move`,
   dashboardSnapshots: (id: string) => `/dashboards/${id}/snapshots`,
   dashboardSnapshot: (dashboardId: string, snapshotId: string) =>
     `/dashboards/${dashboardId}/snapshots/${snapshotId}`,
