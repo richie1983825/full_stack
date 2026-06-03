@@ -104,11 +104,6 @@ export default function DashboardListPage() {
       width: 180,
       render: (v?: string) => v ?? '—',
     },
-    {
-      title: '组件数',
-      dataIndex: 'panelCount',
-      width: 80,
-    },
   ];
 
   return (
