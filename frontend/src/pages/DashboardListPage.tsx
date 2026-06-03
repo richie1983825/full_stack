@@ -7,21 +7,26 @@ import { useDashboardStore } from '../stores/useDashboardStore';
 import { dashboardApi } from '../api/dashboard';
 import type { DashboardSummary } from '../types/dashboard';
 
+interface TreeItem extends DashboardSummary {
+  children?: TreeItem[];
+}
+
 export default function DashboardListPage() {
   const { deleteDashboard } = useDashboardStore();
-  const [items, setItems] = useState<DashboardSummary[]>([]);
+  const [items, setItems] = useState<TreeItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [createKind, setCreateKind] = useState<'folder' | 'dashboard'>('dashboard');
   const [title, setTitle] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
   const [moveOpen, setMoveOpen] = useState(false);
 
   const loadTree = useCallback(async () => {
     setLoading(true);
     try {
       const list = await dashboardApi.listTree();
-      setItems(list);
+      setItems(list.map((i) => ({ ...i, children: i.kind === 'folder' ? [] : undefined })));
     } catch {
       message.error('加载失败');
     } finally {
@@ -33,13 +38,25 @@ export default function DashboardListPage() {
     void loadTree();
   }, [loadTree]);
 
-  const loadChildren = useCallback(async (parentId: string): Promise<DashboardSummary[]> => {
+  const loadChildren = useCallback(async (parentId: string): Promise<TreeItem[]> => {
     try {
-      return await dashboardApi.listChildren(parentId);
+      const list = await dashboardApi.listChildren(parentId);
+      return list.map((i) => ({ ...i, children: i.kind === 'folder' ? [] : undefined }));
     } catch {
       return [];
     }
   }, []);
+
+  const handleExpand = useCallback(async (expanded: boolean, record: TreeItem) => {
+    if (expanded) {
+      // Load children into the record
+      const children = await loadChildren(record.id);
+      setItems((prev) => updateChildren(prev, record.id, children));
+      setExpandedKeys((prev) => [...prev, record.id]);
+    } else {
+      setExpandedKeys((prev) => prev.filter((k) => k !== record.id));
+    }
+  }, [loadChildren]);
 
   const handleCreate = async () => {
     if (!title.trim()) {
@@ -51,6 +68,7 @@ export default function DashboardListPage() {
       setCreateOpen(false);
       setTitle('');
       void loadTree();
+      setExpandedKeys([]);
     } catch (err) {
       message.error(err instanceof Error ? err.message : '创建失败');
     }
@@ -69,6 +87,7 @@ export default function DashboardListPage() {
         message.success(`已删除 ${selectedIds.length} 个项目`);
         setSelectedIds([]);
         void loadTree();
+        setExpandedKeys([]);
       },
     });
   };
@@ -80,9 +99,19 @@ export default function DashboardListPage() {
     setSelectedIds([]);
     setMoveOpen(false);
     void loadTree();
+    setExpandedKeys([]);
   };
 
-  const columns: ColumnsType<DashboardSummary> = [
+  const getAllIds = (list: TreeItem[]): string[] => {
+    const ids: string[] = [];
+    for (const item of list) {
+      ids.push(item.id);
+      if (item.children) ids.push(...getAllIds(item.children));
+    }
+    return ids;
+  };
+
+  const columns: ColumnsType<TreeItem> = [
     {
       title: '名称',
       dataIndex: 'title',
@@ -112,8 +141,7 @@ export default function DashboardListPage() {
     {
       title: '定时快照',
       width: 100,
-      render: (_, r) =>
-        r.kind === 'folder' ? null : <Tag>未开启</Tag>,
+      render: (_, r) => (r.kind === 'folder' ? null : <Tag>未开启</Tag>),
     },
     {
       title: '最近快照时间',
@@ -143,12 +171,8 @@ export default function DashboardListPage() {
       {selectedIds.length > 0 && (
         <div style={{ marginBottom: 12, padding: '8px 12px', background: '#e6f4ff', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 12 }}>
           <span>已选择 <strong>{selectedIds.length}</strong> 个项目</span>
-          <Button danger icon={<DeleteOutlined />} onClick={handleBatchDelete}>
-            删除
-          </Button>
-          <Button onClick={() => setMoveOpen(true)}>
-            移动
-          </Button>
+          <Button danger icon={<DeleteOutlined />} onClick={handleBatchDelete}>删除</Button>
+          <Button onClick={() => setMoveOpen(true)}>移动</Button>
         </div>
       )}
 
@@ -167,29 +191,9 @@ export default function DashboardListPage() {
             onChange: (keys) => setSelectedIds(keys as string[]),
           }}
           expandable={{
+            expandedRowKeys: expandedKeys,
             rowExpandable: (r) => r.kind === 'folder',
-            onExpand: async (expanded, record) => {
-              if (!expanded) return;
-              // Load children into items tree
-              const children = await loadChildren(record.id);
-              setItems((prev) => {
-                const seen = new Set<string>();
-                const result: DashboardSummary[] = [];
-                const queue = [...prev];
-                while (queue.length > 0) {
-                  const item = queue.shift()!;
-                  if (seen.has(item.id)) continue;
-                  seen.add(item.id);
-                  result.push(item);
-                  if (item.id === record.id) {
-                    for (const child of children) {
-                      queue.unshift(child);
-                    }
-                  }
-                }
-                return result;
-              });
-            },
+            onExpand: (expanded, record) => void handleExpand(expanded, record),
           }}
           pagination={{ pageSize: 50, hideOnSinglePage: true }}
         />
@@ -241,4 +245,17 @@ export default function DashboardListPage() {
       </Modal>
     </div>
   );
+}
+
+/** 递归更新 items 树中指定节点的 children */
+function updateChildren(items: TreeItem[], parentId: string, children: TreeItem[]): TreeItem[] {
+  return items.map((item) => {
+    if (item.id === parentId) {
+      return { ...item, children };
+    }
+    if (item.children && item.children.length > 0) {
+      return { ...item, children: updateChildren(item.children, parentId, children) };
+    }
+    return item;
+  });
 }
