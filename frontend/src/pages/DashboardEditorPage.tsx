@@ -10,7 +10,6 @@ import {
 } from 'antd';
 import type { MenuProps } from 'antd';
 import {
-  ArrowLeftOutlined,
   BarChartOutlined,
   CameraOutlined,
   CodeOutlined,
@@ -20,7 +19,7 @@ import {
   SaveOutlined,
   TableOutlined,
 } from '@ant-design/icons';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import DashboardGrid from '../components/Dashboard/DashboardGrid';
 import DashboardJsonDrawer from '../components/Dashboard/DashboardJsonDrawer';
 import SnapshotDrawer from '../components/Dashboard/SnapshotDrawer';
@@ -113,9 +112,6 @@ export default function DashboardEditorPage() {
       <div className="dashboard-editor-toolbar">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
           <Space wrap>
-            <Link to="/">
-              <Button icon={<ArrowLeftOutlined />}>返回列表</Button>
-            </Link>
             {editMode ? (
               <Input
                 value={currentDashboard.title}
