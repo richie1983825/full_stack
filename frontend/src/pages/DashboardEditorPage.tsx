@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
   Button,
-  DatePicker,
   Dropdown,
   Input,
   Space,
@@ -15,14 +14,14 @@ import {
   BarChartOutlined,
   CameraOutlined,
   CodeOutlined,
+  EditOutlined,
   LineChartOutlined,
   PlusOutlined,
   ReloadOutlined,
   SaveOutlined,
   TableOutlined,
 } from '@ant-design/icons';
-import dayjs from 'dayjs';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import DashboardGrid from '../components/Dashboard/DashboardGrid';
 import DashboardJsonDrawer from '../components/Dashboard/DashboardJsonDrawer';
 import SnapshotDrawer from '../components/Dashboard/SnapshotDrawer';
@@ -34,6 +33,8 @@ import { hydratePanelOption } from '../utils/panelData';
 
 export default function DashboardEditorPage() {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
+  const isEditMode = searchParams.get('edit') === 'true';
   const {
     currentDashboard,
     loading,
@@ -43,7 +44,6 @@ export default function DashboardEditorPage() {
     setPanels,
     addPanel,
     updatePanel,
-    setVariable,
     refreshPanelData,
     setEditMode,
     setJsonDrawerOpen,
@@ -52,6 +52,10 @@ export default function DashboardEditorPage() {
   const [editingPanel, setEditingPanel] = useState<PanelConfig | null>(null);
   const [saving, setSaving] = useState(false);
   const [snapshotOpen, setSnapshotOpen] = useState(false);
+
+  useEffect(() => {
+    setEditMode(isEditMode);
+  }, [isEditMode, setEditMode]);
 
   useEffect(() => {
     if (id) {
@@ -112,58 +116,62 @@ export default function DashboardEditorPage() {
           <Link to="/">
             <Button icon={<ArrowLeftOutlined />}>返回列表</Button>
           </Link>
-          <Input
-            value={currentDashboard.title}
-            onChange={(e) =>
-              useDashboardStore.setState({
-                currentDashboard: { ...currentDashboard, title: e.target.value },
-              })
-            }
-            style={{ width: 220 }}
-            placeholder="仪表盘标题"
-          />
-          <DatePicker
-            value={dayjs(currentDashboard.variables?.date ?? '2026-05-13')}
-            onChange={(value) => {
-              if (!value) return;
-              setVariable('date', value.format('YYYY-MM-DD'));
-              void refreshPanelData();
-            }}
-            allowClear={false}
-          />
-          <span className="toolbar-label">
-            编辑模式
-            <Switch checked={editMode} onChange={setEditMode} size="small" style={{ marginLeft: 8 }} />
-          </span>
+          {editMode ? (
+            <Input
+              value={currentDashboard.title}
+              onChange={(e) =>
+                useDashboardStore.setState({
+                  currentDashboard: { ...currentDashboard, title: e.target.value },
+                })
+              }
+              style={{ width: 220 }}
+              placeholder="仪表盘标题"
+            />
+          ) : (
+            <h2 style={{ margin: 0 }}>{currentDashboard.title}</h2>
+          )}
+          {!editMode && (
+            <Link to={`/dashboards/${id}?edit=true`}>
+              <Button type="primary" icon={<EditOutlined />}>
+                编辑仪表盘
+              </Button>
+            </Link>
+          )}
         </Space>
 
-        <Space wrap>
-          <Dropdown menu={{ items: addMenuItems }} disabled={!editMode}>
-            <Button type="primary" icon={<PlusOutlined />} disabled={!editMode}>
-              添加组件
+        {editMode && (
+          <Space wrap>
+            <span className="toolbar-label">
+              编辑模式
+              <Switch checked={editMode} onChange={setEditMode} size="small" style={{ marginLeft: 8 }} />
+            </span>
+            <Dropdown menu={{ items: addMenuItems }} disabled={!editMode}>
+              <Button type="primary" icon={<PlusOutlined />} disabled={!editMode}>
+                添加组件
+              </Button>
+            </Dropdown>
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={() => void refreshPanelData().then(() => message.success('数据已刷新'))}
+            >
+              刷新数据
             </Button>
-          </Dropdown>
-          <Button
-            icon={<ReloadOutlined />}
-            onClick={() => void refreshPanelData().then(() => message.success('数据已刷新'))}
-          >
-            刷新数据
-          </Button>
-          <Button icon={<CodeOutlined />} onClick={() => setJsonDrawerOpen(true)}>
-            JSON 配置
-          </Button>
-          <Button icon={<CameraOutlined />} onClick={() => setSnapshotOpen(true)}>
-            快照
-          </Button>
-          <Button
-            type="primary"
-            icon={<SaveOutlined />}
-            loading={saving}
-            onClick={() => void handleSave()}
-          >
-            保存
-          </Button>
-        </Space>
+            <Button icon={<CodeOutlined />} onClick={() => setJsonDrawerOpen(true)}>
+              JSON 配置
+            </Button>
+            <Button icon={<CameraOutlined />} onClick={() => setSnapshotOpen(true)}>
+              快照
+            </Button>
+            <Button
+              type="primary"
+              icon={<SaveOutlined />}
+              loading={saving}
+              onClick={() => void handleSave()}
+            >
+              保存
+            </Button>
+          </Space>
+        )}
       </div>
 
       <DashboardGrid

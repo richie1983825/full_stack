@@ -1,11 +1,24 @@
 import { useEffect, useState } from 'react';
-import { Button, Card, Col, Empty, Input, Modal, Popconfirm, Row, Space, Spin, Tag, message } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
-import { Link, useNavigate } from 'react-router-dom';
+import { Button, Empty, Input, Modal, Popconfirm, Space, Spin, Table, Tag, message } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
+import type { ColumnsType } from 'antd/es/table';
+import { Link } from 'react-router-dom';
 import { useDashboardStore } from '../stores/useDashboardStore';
 
+interface DashboardRow {
+  key: string;
+  id: string;
+  title: string;
+  description?: string;
+  panelCount: number;
+  creator: string;
+  team: string;
+  hasSchedule: boolean;
+  lastSnapshotAt?: string;
+  createdAt: string;
+}
+
 export default function DashboardListPage() {
-  const navigate = useNavigate();
   const { dashboards, loadDashboards, createDashboard, deleteDashboard, loading } =
     useDashboardStore();
   const [createOpen, setCreateOpen] = useState(false);
@@ -21,14 +34,92 @@ export default function DashboardListPage() {
       return;
     }
     try {
-      const dashboard = await createDashboard(title.trim());
+      await createDashboard(title.trim());
       setCreateOpen(false);
       setTitle('');
-      navigate(`/dashboards/${dashboard.id}`);
+      void loadDashboards();
     } catch (err) {
       message.error(err instanceof Error ? err.message : '创建失败');
     }
   };
+
+  const rows: DashboardRow[] = dashboards.map((d) => ({
+    key: d.id,
+    id: d.id,
+    title: d.title,
+    description: d.description,
+    panelCount: d.panelCount,
+    creator: '—',
+    team: '—',
+    hasSchedule: false,
+    lastSnapshotAt: undefined,
+    createdAt: d.createdAt,
+  }));
+
+  const columns: ColumnsType<DashboardRow> = [
+    {
+      title: '名称',
+      dataIndex: 'title',
+      render: (title: string, record) => (
+        <Link to={`/dashboards/${record.id}`}>
+          <EyeOutlined style={{ marginRight: 6 }} />
+          {title}
+        </Link>
+      ),
+    },
+    {
+      title: '创建人',
+      dataIndex: 'creator',
+      width: 100,
+    },
+    {
+      title: '所属团队',
+      dataIndex: 'team',
+      width: 120,
+    },
+    {
+      title: '定时快照',
+      dataIndex: 'hasSchedule',
+      width: 100,
+      render: (v: boolean) => (v ? <Tag color="green">已开启</Tag> : <Tag>未开启</Tag>),
+    },
+    {
+      title: '最近快照时间',
+      dataIndex: 'lastSnapshotAt',
+      width: 180,
+      render: (v?: string) => v ?? '—',
+    },
+    {
+      title: '组件数',
+      dataIndex: 'panelCount',
+      width: 80,
+    },
+    {
+      title: '操作',
+      width: 120,
+      render: (_, record) => (
+        <Space>
+          <Link to={`/dashboards/${record.id}?edit=true`}>
+            <Button type="link" size="small" icon={<EditOutlined />}>
+              编辑
+            </Button>
+          </Link>
+          <Popconfirm
+            title="确认删除该仪表盘？"
+            onConfirm={async () => {
+              await deleteDashboard(record.id);
+              message.success('已删除');
+              void loadDashboards();
+            }}
+          >
+            <Button type="link" size="small" danger icon={<DeleteOutlined />}>
+              删除
+            </Button>
+          </Popconfirm>
+        </Space>
+      ),
+    },
+  ];
 
   return (
     <div className="page-container">
@@ -50,42 +141,13 @@ export default function DashboardListPage() {
           </Button>
         </Empty>
       ) : (
-        <Row gutter={[16, 16]}>
-          {dashboards.map((item) => (
-            <Col key={item.id} xs={24} sm={12} lg={8}>
-              <Card
-                hoverable
-                actions={[
-                  <Link key="edit" to={`/dashboards/${item.id}`}>
-                    <EditOutlined /> 编辑
-                  </Link>,
-                  <Popconfirm
-                    key="delete"
-                    title="确认删除该仪表盘？"
-                    onConfirm={async () => {
-                      await deleteDashboard(item.id);
-                      message.success('已删除');
-                    }}
-                  >
-                    <span style={{ color: '#ff4d4f' }}>
-                      <DeleteOutlined /> 删除
-                    </span>
-                  </Popconfirm>,
-                ]}
-              >
-                <Card.Meta
-                  title={item.title}
-                  description={
-                    <Space direction="vertical" size={4}>
-                      <span>{item.description || '无描述'}</span>
-                      <Tag>{item.panelCount} 个组件</Tag>
-                    </Space>
-                  }
-                />
-              </Card>
-            </Col>
-          ))}
-        </Row>
+        <Table
+          rowKey="id"
+          loading={loading}
+          columns={columns}
+          dataSource={rows}
+          pagination={{ pageSize: 20, hideOnSinglePage: true }}
+        />
       )}
 
       <Modal
