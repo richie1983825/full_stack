@@ -10,13 +10,17 @@ export default function DashboardJsonDrawer() {
 
   useEffect(() => {
     if (jsonDrawerOpen && currentDashboard) {
+      // 显示持久化配置（不含 option 运行时数据）
+      const persistedPanels = currentDashboard.panels.map(
+        ({ option: _option, ...rest }) => rest,
+      );
       setText(
         JSON.stringify(
           {
             title: currentDashboard.title,
             description: currentDashboard.description,
             variables: currentDashboard.variables,
-            panels: currentDashboard.panels,
+            panels: persistedPanels,
           },
           null,
           2,
