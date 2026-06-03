@@ -118,12 +118,25 @@ export default function DashboardListPage() {
       render: (title: string, record) => (
         <>
           {record.kind === 'folder' ? (
-            <FolderOutlined style={{ marginRight: 6, color: '#faad14' }} />
-          ) : null}
-          {record.kind === 'dashboard' ? (
-            <Link to={`/dashboards/${record.id}`}>{title}</Link>
+            <span
+              style={{ cursor: 'pointer', fontWeight: 500 }}
+              onClick={() => {
+                if (expandedKeys.includes(record.id)) {
+                  setExpandedKeys((prev) => prev.filter((k) => k !== record.id));
+                } else {
+                  if (!record.children || record.children.length === 0) {
+                    void handleExpand(true, record);
+                  } else {
+                    setExpandedKeys((prev) => [...prev, record.id]);
+                  }
+                }
+              }}
+            >
+              <FolderOutlined style={{ marginRight: 6, color: '#faad14' }} />
+              {title}
+            </span>
           ) : (
-            <span style={{ fontWeight: 500 }}>{title}</span>
+            <Link to={`/dashboards/${record.id}`}>{title}</Link>
           )}
         </>
       ),
@@ -131,12 +144,12 @@ export default function DashboardListPage() {
     {
       title: '创建人',
       width: 100,
-      render: () => '—',
+      render: (_, r) => (r.kind === 'folder' ? null : '—'),
     },
     {
       title: '所属团队',
       width: 120,
-      render: () => '—',
+      render: (_, r) => (r.kind === 'folder' ? null : '—'),
     },
     {
       title: '定时快照',
@@ -194,6 +207,7 @@ export default function DashboardListPage() {
             expandedRowKeys: expandedKeys,
             rowExpandable: (r) => r.kind === 'folder',
             onExpand: (expanded, record) => void handleExpand(expanded, record),
+            expandIcon: () => null,
           }}
           pagination={{ pageSize: 50, hideOnSinglePage: true }}
         />
