@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Button, Empty, Input, Modal, Spin, Table, Tag, message } from 'antd';
-import { PlusOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { Link } from 'react-router-dom';
 import { useDashboardStore } from '../stores/useDashboardStore';
@@ -79,10 +79,7 @@ export default function DashboardListPage() {
       title: '名称',
       dataIndex: 'title',
       render: (title: string, record) => (
-        <Link to={`/dashboards/${record.id}`}>
-          <EyeOutlined style={{ marginRight: 6 }} />
-          {title}
-        </Link>
+        <Link to={`/dashboards/${record.id}`}>{title}</Link>
       ),
     },
     {

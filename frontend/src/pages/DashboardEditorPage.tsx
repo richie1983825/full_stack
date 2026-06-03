@@ -111,41 +111,43 @@ export default function DashboardEditorPage() {
   return (
     <div className="dashboard-editor-page">
       <div className="dashboard-editor-toolbar">
-        <Space wrap>
-          <Link to="/">
-            <Button icon={<ArrowLeftOutlined />}>返回列表</Button>
-          </Link>
-          {editMode ? (
-            <Input
-              value={currentDashboard.title}
-              onChange={(e) =>
-                useDashboardStore.setState({
-                  currentDashboard: { ...currentDashboard, title: e.target.value },
-                })
-              }
-              style={{ width: 220 }}
-              placeholder="仪表盘标题"
-            />
-          ) : (
-            <h2 style={{ margin: 0 }}>{currentDashboard.title}</h2>
-          )}
-          <span className="toolbar-label">
-            <Switch
-              checked={editMode}
-              onChange={(checked) => {
-                if (checked) {
-                  window.history.replaceState(null, '', `?edit=true`);
-                } else {
-                  window.history.replaceState(null, '', window.location.pathname);
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+          <Space wrap>
+            <Link to="/">
+              <Button icon={<ArrowLeftOutlined />}>返回列表</Button>
+            </Link>
+            {editMode ? (
+              <Input
+                value={currentDashboard.title}
+                onChange={(e) =>
+                  useDashboardStore.setState({
+                    currentDashboard: { ...currentDashboard, title: e.target.value },
+                  })
                 }
-                setEditMode(checked);
-              }}
-              size="small"
-            />
-            <span style={{ marginLeft: 6 }}>编辑模式</span>
-          </span>
+                style={{ width: 220 }}
+                placeholder="仪表盘标题"
+              />
+            ) : (
+              <h2 style={{ margin: 0 }}>{currentDashboard.title}</h2>
+            )}
+            <span className="toolbar-label">
+              <Switch
+                checked={editMode}
+                onChange={(checked) => {
+                  if (checked) {
+                    window.history.replaceState(null, '', `?edit=true`);
+                  } else {
+                    window.history.replaceState(null, '', window.location.pathname);
+                  }
+                  setEditMode(checked);
+                }}
+                size="small"
+              />
+              <span style={{ marginLeft: 6 }}>编辑模式</span>
+            </span>
+          </Space>
           {editMode && (
-            <>
+            <Space wrap>
               <Dropdown menu={{ items: addMenuItems }}>
                 <Button type="primary" icon={<PlusOutlined />}>
                   添加组件
@@ -171,9 +173,9 @@ export default function DashboardEditorPage() {
               >
                 保存
               </Button>
-            </>
+            </Space>
           )}
-        </Space>
+        </div>
       </div>
 
       <DashboardGrid
