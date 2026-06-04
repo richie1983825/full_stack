@@ -141,7 +141,7 @@ export const useDashboardStore = create<DashboardStore>((set, get) => ({
     });
     const saved = mapDashboard(updated as unknown as Record<string, unknown>);
     // 保存后重新水合面板数据（从 SQL 查询获取实时数据）
-    const hydratedPanels = await hydratePanels(saved.panels);
+    const hydratedPanels = await hydratePanels(saved.panels, saved.variables);
     set({
       currentDashboard: { ...saved, panels: hydratedPanels },
     });

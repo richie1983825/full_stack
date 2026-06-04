@@ -56,14 +56,26 @@ describe('resolveSql', () => {
     expect(sql).toBe("SELECT * FROM t WHERE dt = '2026-06-03' AND cat = 'usage'");
   });
 
-  it('空变量时自动补全默认日期', () => {
+  it('模拟保存后重新水合：SQL 含 ${date} + 变量含 date', () => {
+    // 这是关键场景：用户编辑面板写入带 ${date} 的 SQL，保存后重新加载
+    const panelQuery = {
+      sql: "SELECT node, category, metrics, current_value FROM \"net_work_metrics\" WHERE created_at::date='${date}' LIMIT 100",
+      sqlMode: 'code' as const,
+      datasourceId: 'ds-1',
+    };
+    const variables = { date: '2026-06-02' };
+    const sql = resolveSql(panelQuery, variables);
+    expect(sql).not.toContain('${date}');
+    expect(sql).toContain("2026-06-02");
+  });
+
+  it('空变量时保留占位符（不自动填充）', () => {
     const sql = resolveSql(
       { sql: "SELECT * FROM t WHERE dt = '${date}'", sqlMode: 'code' },
       {},
     );
-    // 没有显式传 date 时，自动用默认日期填充，不应有 ${date} 占位符
-    expect(sql).not.toContain('${date}');
-    expect(sql).toMatch(/dt = '\d{4}-\d{2}-\d{2}'/);
+    // 空变量时不替换，保留占位符——由调用方负责提供变量
+    expect(sql).toContain('${date}');
   });
 
   it('无 query 返回 null', () => {
