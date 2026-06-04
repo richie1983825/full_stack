@@ -122,11 +122,22 @@ export const useDashboardStore = create<DashboardStore>((set, get) => ({
       ({ option: _option, ...rest }) => rest,
     );
 
+    // 确保 date 变量存在
+    const vars = payload?.variables ?? currentDashboard.variables ?? {};
+    if (!vars.date) {
+      const now = new Date();
+      const yesterday = new Date(now);
+      yesterday.setDate(yesterday.getDate() - 1);
+      vars.date = now.getHours() < 16
+        ? yesterday.toISOString().slice(0, 10)
+        : now.toISOString().slice(0, 10);
+    }
+
     const updated = await dashboardApi.update(currentDashboard.id, {
       title: payload?.title ?? currentDashboard.title,
       description: payload?.description ?? currentDashboard.description,
       panels: panelsToSave,
-      variables: payload?.variables ?? currentDashboard.variables,
+      variables: vars,
     });
     const saved = mapDashboard(updated as unknown as Record<string, unknown>);
     // 保存后重新水合面板数据（从 SQL 查询获取实时数据）
