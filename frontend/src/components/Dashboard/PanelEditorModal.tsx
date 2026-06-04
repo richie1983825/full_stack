@@ -1,4 +1,4 @@
-import { Form, Input, InputNumber, Modal, Select, Switch } from 'antd';
+import { Divider, Form, Input, InputNumber, Modal, Select, Switch } from 'antd';
 import { useEffect, useState } from 'react';
 import type { PanelChartType, PanelConfig, SqlMode } from '../../types/dashboard';
 import { datasourceApi } from '../../api/datasource';
@@ -114,6 +114,7 @@ export default function PanelEditorModal({
       destroyOnClose
     >
       <Form form={form} layout="vertical">
+        {/* ===== 基本信息 ===== */}
         <Form.Item name="title" label="标题" rules={[{ required: true, message: '请输入标题' }]}>
           <Input />
         </Form.Item>
@@ -123,8 +124,31 @@ export default function PanelEditorModal({
             onChange={(val) => setChartType(val as PanelChartType)}
           />
         </Form.Item>
+
+        {/* ===== 显示 ===== */}
+        <Divider orientation="left" style={{ fontSize: 13, margin: '12px 0 8px' }}>显示</Divider>
+        <Form.Item label="位置与大小" style={{ marginBottom: 8 }}>
+          <Input.Group compact>
+            <span style={{ display: 'inline-block', padding: '4px 6px', border: '1px solid #d9d9d9', borderRadius: '6px 0 0 6px', background: '#fafafa', fontSize: 13 }}>列</span>
+            <Form.Item name="x" noStyle>
+              <InputNumber min={0} max={11} style={{ width: 50, borderLeft: 0, borderRadius: 0 }} />
+            </Form.Item>
+            <span style={{ display: 'inline-block', padding: '4px 6px', border: '1px solid #d9d9d9', background: '#fafafa', fontSize: 13, marginLeft: -1 }}>行</span>
+            <Form.Item name="y" noStyle>
+              <InputNumber min={0} style={{ width: 50, borderLeft: 0, borderRadius: 0 }} />
+            </Form.Item>
+            <span style={{ display: 'inline-block', padding: '4px 6px', border: '1px solid #d9d9d9', background: '#fafafa', fontSize: 13, marginLeft: -1 }}>宽</span>
+            <Form.Item name="w" noStyle>
+              <InputNumber min={1} max={12} style={{ width: 50, borderLeft: 0, borderRadius: 0 }} />
+            </Form.Item>
+            <span style={{ display: 'inline-block', padding: '4px 6px', border: '1px solid #d9d9d9', background: '#fafafa', fontSize: 13, marginLeft: -1 }}>高</span>
+            <Form.Item name="h" noStyle>
+              <InputNumber min={1} max={12} style={{ width: 50, borderLeft: 0, borderRadius: '0 6px 6px 0' }} />
+            </Form.Item>
+          </Input.Group>
+        </Form.Item>
         {chartType === 'table' && (
-          <Form.Item label="分页" labelCol={{ span: 4 }} wrapperCol={{ span: 20 }}>
+          <Form.Item label="分页" style={{ marginBottom: 8 }}>
             <Form.Item name="paginationEnabled" valuePropName="checked" style={{ display: 'inline-block', marginBottom: 0, marginRight: 24 }}>
               <Switch />
             </Form.Item>
@@ -145,39 +169,19 @@ export default function PanelEditorModal({
             </Form.Item>
           </Form.Item>
         )}
-        <Form.Item label="位置与大小" style={{ marginBottom: 0 }}>
-          <Input.Group compact>
-            <span style={{ display: 'inline-block', padding: '4px 6px', border: '1px solid #d9d9d9', borderRadius: '6px 0 0 6px', background: '#fafafa', fontSize: 13 }}>列</span>
-            <Form.Item name="x" noStyle>
-              <InputNumber min={0} max={11} style={{ width: 50, borderLeft: 0, borderRadius: 0 }} />
-            </Form.Item>
-            <span style={{ display: 'inline-block', padding: '4px 6px', border: '1px solid #d9d9d9', background: '#fafafa', fontSize: 13, marginLeft: -1 }}>行</span>
-            <Form.Item name="y" noStyle>
-              <InputNumber min={0} style={{ width: 50, borderLeft: 0, borderRadius: 0 }} />
-            </Form.Item>
-            <span style={{ display: 'inline-block', padding: '4px 6px', border: '1px solid #d9d9d9', background: '#fafafa', fontSize: 13, marginLeft: -1 }}>宽</span>
-            <Form.Item name="w" noStyle>
-              <InputNumber min={1} max={12} style={{ width: 50, borderLeft: 0, borderRadius: 0 }} />
-            </Form.Item>
-            <span style={{ display: 'inline-block', padding: '4px 6px', border: '1px solid #d9d9d9', background: '#fafafa', fontSize: 13, marginLeft: -1 }}>高</span>
-            <Form.Item name="h" noStyle>
-              <InputNumber min={1} max={12} style={{ width: 50, borderLeft: 0, borderRadius: '0 6px 6px 0' }} />
-            </Form.Item>
-          </Input.Group>
-        </Form.Item>
 
-        <Form.Item label="数据源查询">
-          <SqlQueryEditor
-            datasourceId={sqlQuery.datasourceId}
-            sql={sqlQuery.sql}
-            sqlMode={sqlQuery.sqlMode}
-            sqlTable={sqlQuery.sqlTable}
-            sqlColumns={sqlQuery.sqlColumns}
-            sqlWhere={sqlQuery.sqlWhere}
-            sqlOrderBy={sqlQuery.sqlOrderBy}
-            onChange={(values) => setSqlQuery((prev) => ({ ...prev, ...values }))}
-          />
-        </Form.Item>
+        {/* ===== 查询 ===== */}
+        <Divider orientation="left" style={{ fontSize: 13, margin: '12px 0 8px' }}>查询</Divider>
+        <SqlQueryEditor
+          datasourceId={sqlQuery.datasourceId}
+          sql={sqlQuery.sql}
+          sqlMode={sqlQuery.sqlMode}
+          sqlTable={sqlQuery.sqlTable}
+          sqlColumns={sqlQuery.sqlColumns}
+          sqlWhere={sqlQuery.sqlWhere}
+          sqlOrderBy={sqlQuery.sqlOrderBy}
+          onChange={(values) => setSqlQuery((prev) => ({ ...prev, ...values }))}
+        />
       </Form>
     </Modal>
   );
