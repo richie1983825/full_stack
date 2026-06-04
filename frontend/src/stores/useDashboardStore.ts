@@ -78,6 +78,16 @@ export const useDashboardStore = create<DashboardStore>((set, get) => ({
     try {
       const raw = await dashboardApi.getById(id);
       const dashboard = mapDashboard(raw as unknown as Record<string, unknown>);
+      // 确保 date 变量存在（16 点前默认昨天，之后默认今天）
+      if (!dashboard.variables?.date) {
+        const now = new Date();
+        const yesterday = new Date(now);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const defaultDate = now.getHours() < 16
+          ? yesterday.toISOString().slice(0, 10)
+          : now.toISOString().slice(0, 10);
+        dashboard.variables = { ...dashboard.variables, date: defaultDate };
+      }
       const panels = await hydratePanels(dashboard.panels, dashboard.variables);
       set({ currentDashboard: { ...dashboard, panels }, loading: false });
     } catch {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Button,
   DatePicker,
@@ -62,6 +62,12 @@ export default function DashboardEditorPage() {
     return now.hour() < 16 ? now.subtract(1, 'day').format('YYYY-MM-DD') : now.format('YYYY-MM-DD');
   })();
 
+  // 确保 variables 中始终有 date
+  const effectiveVariables = useMemo(() => ({
+    ...currentDashboard?.variables,
+    date: currentDashboard?.variables?.date ?? defaultDate,
+  }), [currentDashboard?.variables, defaultDate]);
+
   useEffect(() => {
     setEditMode(isEditMode);
   }, [isEditMode, setEditMode]);
@@ -108,7 +114,7 @@ export default function DashboardEditorPage() {
   const handleAddPanel = async (chartType: PanelChartType) => {
     if (!currentDashboard) return;
     const panel = createDefaultPanel(chartType, nextPanelGrid(currentDashboard.panels));
-    const hydrated = await hydratePanelOption(panel, currentDashboard.variables);
+    const hydrated = await hydratePanelOption(panel, effectiveVariables);
     addPanel(hydrated);
     message.success(`已添加${chartType === 'line' ? '折线图' : chartType === 'bar' ? '柱状图' : '表格'}`);
   };
@@ -123,7 +129,7 @@ export default function DashboardEditorPage() {
     updatePanel(panel);
     setEditingPanel(null);
     try {
-      const hydrated = await hydratePanelOption(panel, currentDashboard?.variables);
+      const hydrated = await hydratePanelOption(panel, effectiveVariables);
       updatePanel(hydrated);
     } catch {
       /* keep manual option */
@@ -231,7 +237,7 @@ export default function DashboardEditorPage() {
         panel={editingPanel}
         onCancel={() => setEditingPanel(null)}
         onSave={(panel) => void handlePanelSave(panel)}
-        variables={currentDashboard.variables}
+        variables={effectiveVariables}
       />
 
       <DashboardJsonDrawer />
