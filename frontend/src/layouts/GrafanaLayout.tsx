@@ -1,13 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { Link, Navigate, Outlet, useLocation } from 'react-router-dom';
 import {
-  BarChartOutlined,
-  DatabaseOutlined,
-  HomeOutlined,
-  KeyOutlined,
   LogoutOutlined,
-  TeamOutlined,
-  UserOutlined,
 } from '@ant-design/icons';
 import { Breadcrumb, Button, Dropdown, Layout, Menu, Space } from 'antd';
 import type { MenuProps } from 'antd';
@@ -56,12 +50,10 @@ export default function GrafanaLayout() {
     const items: MenuProps['items'] = [
       {
         key: 'dashboard',
-        icon: <BarChartOutlined />,
         label: <Link to="/">仪表盘</Link>,
       },
       {
         key: 'datasources',
-        icon: <DatabaseOutlined />,
         label: <Link to="/datasources">数据源</Link>,
       },
     ];
@@ -72,7 +64,6 @@ export default function GrafanaLayout() {
       if (hasPermission('users:read') || user?.is_grafana_admin) {
         adminChildren.push({
           key: 'admin-users',
-          icon: <UserOutlined />,
           label: <Link to="/admin/users">用户管理</Link>,
         });
       }
@@ -81,12 +72,10 @@ export default function GrafanaLayout() {
         adminChildren.push(
           {
             key: 'admin-roles',
-            icon: <TeamOutlined />,
             label: <Link to="/admin/roles">角色管理</Link>,
           },
           {
             key: 'admin-permissions',
-            icon: <KeyOutlined />,
             label: <Link to="/admin/permissions">权限管理</Link>,
           },
         );
@@ -107,7 +96,6 @@ export default function GrafanaLayout() {
   const userMenuItems: MenuProps['items'] = [
     {
       key: 'home-settings',
-      icon: <HomeOutlined />,
       label: '设置首页',
       onClick: () => setHomeSettingsOpen(true),
     },
@@ -149,10 +137,7 @@ export default function GrafanaLayout() {
           <div className="grafana-topbar-actions">
             <Dropdown menu={{ items: userMenuItems }} trigger={['click']}>
               <Button type="text" className="grafana-user-btn">
-                <Space size={6}>
-                  <UserOutlined />
-                  <span style={{ color: 'rgba(255,255,255,0.85)' }}>{user?.display_name ?? user?.username}</span>
-                </Space>
+                <span style={{ color: 'rgba(255,255,255,0.85)' }}>{user?.display_name ?? user?.username}</span>
               </Button>
             </Dropdown>
           </div>
