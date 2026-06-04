@@ -7,6 +7,7 @@ import {
   sortNetworkMetricRows,
   type NetworkMetricTableRow,
 } from './networkMetricTable';
+import { normalizeChartOption } from './chartLayout';
 
 export function renderSnapshotHtml(
   title: string,
@@ -62,7 +63,9 @@ export function renderSnapshotHtml(
 </section>`;
     } else {
       const chartId = `chart-${chartIndex++}`;
-      const optionJson = JSON.stringify(panel.option ?? {});
+      const optionJson = JSON.stringify(
+        normalizeChartOption((panel.option ?? {}) as Record<string, unknown>),
+      );
       panelBlocks += `
 <section class="panel" style="${gridStyle}">
   <header class="panel-title">${panel.title}</header>
@@ -74,8 +77,6 @@ export function renderSnapshotHtml(
   if(!el||typeof echarts==="undefined")return;
   var chart=echarts.init(el);
   var option=${optionJson};
-  if(option.legend)option.legend=Object.assign({top:0,right:0,orient:"horizontal"},option.legend);
-  if(!option.grid)option.grid={left:50,right:20,top:20,bottom:30};
   chart.setOption(option);
   window.addEventListener("resize",function(){chart.resize();});
 })();`;

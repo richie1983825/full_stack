@@ -3,9 +3,12 @@ import { CloseOutlined, MessageOutlined } from '@ant-design/icons';
 import { useChatStore } from '../../stores/useChatStore';
 import ChatPanel from './ChatPanel';
 
-const HEADER_HEIGHT = 56;
+interface ChatSidebarProps {
+  /** 展开后以浮动对话框形式展示，而非贴边全高侧栏 */
+  floating?: boolean;
+}
 
-export default function ChatSidebar() {
+export default function ChatSidebar({ floating = false }: ChatSidebarProps) {
   const { chatOpen, openChat, closeChat } = useChatStore();
 
   return (
@@ -30,10 +33,9 @@ export default function ChatSidebar() {
             onClick={closeChat}
           />
           <aside
-            className="chat-sidebar-panel"
+            className={`chat-sidebar-panel${floating ? ' chat-sidebar-panel--float' : ''}`}
             role="dialog"
             aria-label="AI 报表助手"
-            style={{ top: HEADER_HEIGHT }}
           >
             <div className="chat-sidebar-header">
               <span className="chat-sidebar-title">AI 报表助手</span>

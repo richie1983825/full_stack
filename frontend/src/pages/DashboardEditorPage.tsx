@@ -24,10 +24,12 @@ import {
 
 import dayjs from 'dayjs';
 import { useParams, useSearchParams } from 'react-router-dom';
+import ChatSidebar from '../components/Chat/ChatSidebar';
 import DashboardGrid from '../components/Dashboard/DashboardGrid';
 import DashboardJsonDrawer from '../components/Dashboard/DashboardJsonDrawer';
 import SnapshotDrawer from '../components/Dashboard/SnapshotDrawer';
 import PanelEditorModal from '../components/Dashboard/PanelEditorModal';
+import { useChatStore } from '../stores/useChatStore';
 import { useDashboardStore } from '../stores/useDashboardStore';
 import type { PanelChartType, PanelConfig } from '../types/dashboard';
 import { createDefaultPanel, nextPanelGrid } from '../utils/panelTemplates';
@@ -68,9 +70,15 @@ export default function DashboardEditorPage() {
     date: currentDashboard?.variables?.date ?? defaultDate,
   }), [currentDashboard?.variables, defaultDate]);
 
+  const closeChat = useChatStore((s) => s.closeChat);
+
   useEffect(() => {
     setEditMode(isEditMode);
   }, [isEditMode, setEditMode]);
+
+  useEffect(() => {
+    if (!editMode) closeChat();
+  }, [editMode, closeChat]);
 
   useEffect(() => {
     if (id) {
@@ -248,6 +256,8 @@ export default function DashboardEditorPage() {
         dashboardTitle={currentDashboard.title}
         onClose={() => setSnapshotOpen(false)}
       />
+
+      {editMode && <ChatSidebar floating />}
     </div>
   );
 }

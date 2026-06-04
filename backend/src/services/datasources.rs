@@ -1,11 +1,8 @@
-use aes_gcm::aead::{Aead, KeyInit};
-use aes_gcm::{Aes256Gcm, Nonce};
-use base64::engine::general_purpose::STANDARD as BASE64;
-use base64::Engine;
 use sea_orm::{ActiveModelTrait, EntityTrait, ModelTrait, QueryFilter, Set};
 use uuid::Uuid;
 
 use crate::config::Config;
+use crate::crypto::{decrypt_secret, encrypt_secret};
 use crate::entity::datasources;
 use crate::models::{
     CreateDatasourceRequest, DatasourceQueryResult, DatasourceResponse,
@@ -13,45 +10,12 @@ use crate::models::{
 };
 
 /// Derive a 32-byte key from the JWT secret (AES-256 needs exactly 32 bytes).
-fn encryption_key(cfg: &Config) -> Vec<u8> {
-    let secret = cfg.jwt_secret.as_bytes();
-    if secret.len() >= 32 {
-        secret[..32].to_vec()
-    } else {
-        let mut key = vec![0u8; 32];
-        key[..secret.len()].copy_from_slice(secret);
-        key
-    }
-}
-
 fn encrypt_password(password: &str, cfg: &Config) -> Result<String, String> {
-    let key = encryption_key(cfg);
-    let cipher = Aes256Gcm::new_from_slice(&key).map_err(|e| format!("cipher init: {e}"))?;
-    let nonce_bytes = rand::random::<[u8; 12]>();
-    let nonce = Nonce::from_slice(&nonce_bytes);
-    let ciphertext = cipher
-        .encrypt(nonce, password.as_bytes())
-        .map_err(|e| format!("encrypt: {e}"))?;
-    let mut combined = nonce_bytes.to_vec();
-    combined.extend_from_slice(&ciphertext);
-    Ok(BASE64.encode(&combined))
+    encrypt_secret(password, &cfg.jwt_secret)
 }
 
 fn decrypt_password(encoded: &str, cfg: &Config) -> Result<String, String> {
-    let combined = BASE64
-        .decode(encoded)
-        .map_err(|e| format!("base64 decode: {e}"))?;
-    if combined.len() < 12 {
-        return Err("invalid ciphertext".into());
-    }
-    let (nonce_bytes, ciphertext) = combined.split_at(12);
-    let key = encryption_key(cfg);
-    let cipher = Aes256Gcm::new_from_slice(&key).map_err(|e| format!("cipher init: {e}"))?;
-    let nonce = Nonce::from_slice(nonce_bytes);
-    let plaintext = cipher
-        .decrypt(nonce, ciphertext)
-        .map_err(|e| format!("decrypt: {e}"))?;
-    String::from_utf8(plaintext).map_err(|e| format!("utf8: {e}"))
+    decrypt_secret(encoded, &cfg.jwt_secret)
 }
 
 fn to_response(model: &datasources::Model) -> DatasourceResponse {

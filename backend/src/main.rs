@@ -1,10 +1,12 @@
 mod config;
+mod crypto;
 mod db;
 mod entity;
 mod handlers;
 mod app_middleware;
 mod migration;
 mod models;
+mod secrets;
 mod services;
 
 use actix_cors::Cors;

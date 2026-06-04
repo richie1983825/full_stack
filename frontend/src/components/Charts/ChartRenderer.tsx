@@ -9,6 +9,7 @@ import {
   sortNetworkMetricRows,
   type NetworkMetricTableRow,
 } from '../../utils/networkMetricTable';
+import { normalizeChartOption } from '../../utils/chartLayout';
 import { defaultTableFieldMeta } from '../../constants/networkMetricSchema';
 
 interface ChartRendererProps {
@@ -104,19 +105,7 @@ export default function ChartRenderer({ config }: ChartRendererProps) {
   }
 
   const userOption = config.option as Record<string, unknown>;
-
-  const option = {
-    ...userOption,
-    legend: {
-      ...((userOption.legend as Record<string, unknown>) ?? {}),
-      top: 0,
-      right: 0,
-      orient: 'horizontal',
-      type: 'scroll',
-      width: '80%',
-    },
-    grid: userOption.grid ?? { left: 50, right: 20, top: 20, bottom: 30 },
-  };
+  const option = normalizeChartOption(userOption);
 
   return (
     <ReactECharts

@@ -64,8 +64,21 @@ pub fn render_snapshot_html(
   if (!el || typeof echarts === "undefined") return;
   var chart = echarts.init(el);
   var option = {option_str};
-  if (option.legend) option.legend = Object.assign({{ top: 0, right: 0, orient: "horizontal" }}, option.legend);
-  if (!option.grid) option.grid = {{ left: 50, right: 20, top: 20, bottom: 30 }};
+  if (option.legend) option.legend = Object.assign({{ top: 8, right: 8, left: "auto", orient: "horizontal", type: "scroll", padding: [4, 8, 4, 8] }}, option.legend);
+  if (option.legend && option.legend.bottom != null) {{
+    delete option.legend.top;
+    delete option.legend.right;
+    option.legend.left = option.legend.left || "center";
+    option.legend.bottom = Math.max(option.legend.bottom || 0, 8);
+  }}
+  if (option.legend && option.legend.bottom == null) {{ delete option.legend.bottom; delete option.legend.width; }}
+  if (!option.grid) option.grid = {{
+    left: 50,
+    right: 24,
+    top: option.legend && option.legend.bottom == null ? 44 : 20,
+    bottom: option.legend && option.legend.bottom != null ? 52 : 30
+  }};
+  else option.grid.right = Math.max(option.grid.right || 24, 16);
   chart.setOption(option);
   window.addEventListener("resize", function() {{ chart.resize(); }});
 }})();

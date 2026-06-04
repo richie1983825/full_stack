@@ -324,6 +324,7 @@ html, body, #root {
 
 .chat-sidebar-panel {
   position: fixed;
+  top: var(--header-height);
   right: 0;
   bottom: 0;
   z-index: 1001;
@@ -334,6 +335,16 @@ html, body, #root {
   background: var(--bg-container);
   border-left: 1px solid var(--border-light);
   box-shadow: -4px 0 24px rgba(0, 0, 0, 0.08);
+}
+
+.chat-sidebar-panel--float {
+  top: auto;
+  right: 64px;
+  bottom: 24px;
+  height: min(640px, calc(100vh - var(--header-height) - 48px));
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
 }
 
 .chat-sidebar-header {
@@ -352,6 +363,13 @@ html, body, #root {
 
 @media (max-width: 480px) {
   .chat-sidebar-panel { left: 0; width: auto; }
+  .chat-sidebar-panel--float {
+    right: 12px;
+    left: 12px;
+    width: auto;
+    bottom: 12px;
+    height: min(560px, calc(100vh - var(--header-height) - 24px));
+  }
 }
 
 /* ===== 权限页 ===== */

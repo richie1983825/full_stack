@@ -9,6 +9,7 @@ pub struct Config {
     pub jwt_expires_hours: i64,
     pub snapshot_dir: String,
     pub public_base_url: String,
+    pub deepseek_api_key: Option<String>,
 }
 
 impl Config {
@@ -23,13 +24,23 @@ impl Config {
             format!("http://{server_host}:{server_port}")
         });
 
+        let jwt_secret = env::var("JWT_SECRET")
+            .unwrap_or_else(|_| "cmp-dev-secret-change-in-production".into());
+
+        let deepseek_api_key = match crate::secrets::DeepseekSecrets::load() {
+            Ok(secrets) => Some(secrets.api_key),
+            Err(e) => {
+                log::debug!("Deepseek secrets not loaded: {e}");
+                None
+            }
+        };
+
         Self {
             database_url: env::var("DATABASE_URL")
                 .unwrap_or_else(|_| "postgres://postgres:@localhost:5432/cmp_service".into()),
             server_host,
             server_port,
-            jwt_secret: env::var("JWT_SECRET")
-                .unwrap_or_else(|_| "cmp-dev-secret-change-in-production".into()),
+            jwt_secret,
             jwt_expires_hours: env::var("JWT_EXPIRES_HOURS")
                 .unwrap_or_else(|_| "24".into())
                 .parse()
@@ -37,6 +48,7 @@ impl Config {
             snapshot_dir: env::var("SNAPSHOT_DIR")
                 .unwrap_or_else(|_| "./data/snapshots".into()),
             public_base_url,
+            deepseek_api_key,
         }
     }
 }

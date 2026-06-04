@@ -62,8 +62,8 @@ export default function PanelCard({ panel, onDelete, onEdit }: PanelCardProps) {
       styles={{
         body: {
           flex: 1,
-          padding: 8,
-          overflow: panel.chartType === 'table' ? 'visible' : 'hidden',
+          padding: '8px 12px 8px 8px',
+          overflow: 'visible',
         },
         header: { minHeight: 38, padding: '0 12px' },
       }}
