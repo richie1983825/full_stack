@@ -19,6 +19,7 @@ import {
   SaveOutlined,
   TableOutlined,
 } from '@ant-design/icons';
+import dayjs from 'dayjs';
 import { useParams, useSearchParams } from 'react-router-dom';
 import DashboardGrid from '../components/Dashboard/DashboardGrid';
 import DashboardJsonDrawer from '../components/Dashboard/DashboardJsonDrawer';
@@ -141,36 +142,36 @@ export default function DashboardEditorPage() {
               />
               <span style={{ marginLeft: 6 }}>编辑模式</span>
             </span>
-          </Space>
-          {editMode && (
-            <Space wrap>
-              <Dropdown menu={{ items: addMenuItems }}>
-                <Button type="primary" icon={<PlusOutlined />}>
-                  添加组件
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={() => void refreshPanelData().then(() => message.success('数据已刷新'))}
+            >
+              刷新数据
+            </Button>
+            <Button icon={<CameraOutlined />} onClick={() => setSnapshotOpen(true)}>
+              快照
+            </Button>
+            {editMode && (
+              <>
+                <Dropdown menu={{ items: addMenuItems }}>
+                  <Button type="primary" icon={<PlusOutlined />}>
+                    添加组件
+                  </Button>
+                </Dropdown>
+                <Button icon={<CodeOutlined />} onClick={() => setJsonDrawerOpen(true)}>
+                  JSON 配置
                 </Button>
-              </Dropdown>
-              <Button
-                icon={<ReloadOutlined />}
-                onClick={() => void refreshPanelData().then(() => message.success('数据已刷新'))}
-              >
-                刷新数据
-              </Button>
-              <Button icon={<CodeOutlined />} onClick={() => setJsonDrawerOpen(true)}>
-                JSON 配置
-              </Button>
-              <Button icon={<CameraOutlined />} onClick={() => setSnapshotOpen(true)}>
-                快照
-              </Button>
-              <Button
-                type="primary"
-                icon={<SaveOutlined />}
-                loading={saving}
-                onClick={() => void handleSave()}
-              >
-                保存
-              </Button>
-            </Space>
-          )}
+                <Button
+                  type="primary"
+                  icon={<SaveOutlined />}
+                  loading={saving}
+                  onClick={() => void handleSave()}
+                >
+                  保存
+                </Button>
+              </>
+            )}
+          </Space>
         </div>
       </div>
 
