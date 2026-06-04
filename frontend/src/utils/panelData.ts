@@ -77,14 +77,9 @@ function buildChartFromSqlResult(
     }));
     return {
       tooltip: { trigger: 'axis' },
-      legend: { bottom: 0 },
-      grid: { left: 150, right: 20, top: 20, bottom: 30, containLabel: true },
+      legend: { bottom: 0, type: 'scroll' },
       xAxis: { type: 'value' },
-      yAxis: {
-        type: 'category',
-        data: categories,
-        axisLabel: { width: 130, overflow: 'truncate' },
-      },
+      yAxis: { type: 'category', data: categories },
       series,
     };
   }
@@ -102,13 +97,8 @@ function buildChartFromSqlResult(
 
   return {
     tooltip: { trigger: 'axis' },
-    legend: { bottom: 0 },
-    grid: { left: 20, right: 20, top: 20, bottom: 30, containLabel: true },
-    xAxis: {
-      type: 'category',
-      data: categories,
-      axisLabel: { rotate: categories.length > 5 ? 30 : 0 },
-    },
+    legend: { bottom: 0, type: 'scroll' },
+    xAxis: { type: 'category', data: categories },
     yAxis: { type: 'value' },
     series,
   };
