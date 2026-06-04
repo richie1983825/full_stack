@@ -171,7 +171,7 @@ export default function PanelEditorModal({
         )}
 
         {/* ===== 查询 ===== */}
-        <Divider orientation="left" style={{ fontSize: 13, margin: '12px 0 8px' }}>查询</Divider>
+        <Divider style={{ fontSize: 13, margin: '12px 0 8px' }}>查询</Divider>
         <SqlQueryEditor
           datasourceId={sqlQuery.datasourceId}
           sql={sqlQuery.sql}
