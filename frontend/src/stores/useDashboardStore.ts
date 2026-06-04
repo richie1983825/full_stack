@@ -171,7 +171,7 @@ export const useDashboardStore = create<DashboardStore>((set, get) => ({
   refreshPanelData: async () => {
     const { currentDashboard } = get();
     if (!currentDashboard) return;
-    const panels = await hydratePanels(currentDashboard.panels);
+    const panels = await hydratePanels(currentDashboard.panels, currentDashboard.variables);
     set({ currentDashboard: { ...currentDashboard, panels } });
   },
 

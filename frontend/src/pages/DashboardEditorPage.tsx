@@ -108,7 +108,7 @@ export default function DashboardEditorPage() {
   const handleAddPanel = async (chartType: PanelChartType) => {
     if (!currentDashboard) return;
     const panel = createDefaultPanel(chartType, nextPanelGrid(currentDashboard.panels));
-    const hydrated = await hydratePanelOption(panel);
+    const hydrated = await hydratePanelOption(panel, currentDashboard.variables);
     addPanel(hydrated);
     message.success(`已添加${chartType === 'line' ? '折线图' : chartType === 'bar' ? '柱状图' : '表格'}`);
   };
@@ -123,7 +123,7 @@ export default function DashboardEditorPage() {
     updatePanel(panel);
     setEditingPanel(null);
     try {
-      const hydrated = await hydratePanelOption(panel);
+      const hydrated = await hydratePanelOption(panel, currentDashboard.variables);
       updatePanel(hydrated);
     } catch {
       /* keep manual option */
