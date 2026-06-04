@@ -533,6 +533,7 @@ mod tests {
             "query": { "sql": "SELECT * FROM t WHERE dt = '${date}'", "sqlMode": "code" }
         });
         let sql = resolve_panel_sql(&panel, &json!({})).unwrap();
+        // 空变量时不替换，保留占位符（后端快照由调用方负责设置变量）
         assert!(sql.contains("${date}"));
     }
 }

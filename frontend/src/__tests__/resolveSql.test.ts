@@ -56,12 +56,14 @@ describe('resolveSql', () => {
     expect(sql).toBe("SELECT * FROM t WHERE dt = '2026-06-03' AND cat = 'usage'");
   });
 
-  it('空变量保留占位符', () => {
+  it('空变量时自动补全默认日期', () => {
     const sql = resolveSql(
       { sql: "SELECT * FROM t WHERE dt = '${date}'", sqlMode: 'code' },
       {},
     );
-    expect(sql).toBe("SELECT * FROM t WHERE dt = '${date}'");
+    // 没有显式传 date 时，自动用默认日期填充，不应有 ${date} 占位符
+    expect(sql).not.toContain('${date}');
+    expect(sql).toMatch(/dt = '\d{4}-\d{2}-\d{2}'/);
   });
 
   it('无 query 返回 null', () => {

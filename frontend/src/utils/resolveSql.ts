@@ -21,10 +21,19 @@ export function resolveSql(query?: PanelQuery, variables?: Record<string, string
 
   if (!sql) return null;
 
-  if (variables) {
-    for (const [key, value] of Object.entries(variables)) {
-      sql = sql.replace(new RegExp(`\\$\\{${key}\\}`, 'g'), value);
-    }
+  // 确保 date 变量始终存在
+  const effectiveVars = { ...variables };
+  if (!effectiveVars.date) {
+    const now = new Date();
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    effectiveVars.date = now.getHours() < 16
+      ? yesterday.toISOString().slice(0, 10)
+      : now.toISOString().slice(0, 10);
+  }
+
+  for (const [key, value] of Object.entries(effectiveVars)) {
+    sql = sql.replace(new RegExp(`\\$\\{${key}\\}`, 'g'), value);
   }
 
   return sql;
