@@ -110,8 +110,8 @@ export default function ChartRenderer({ config }: ChartRendererProps) {
     legend: {
       ...((userOption.legend as Record<string, unknown>) ?? {}),
       top: 0,
-      right: 0,
       orient: 'horizontal',
+      type: 'scroll',
     },
     grid: userOption.grid ?? { left: 50, right: 20, top: 20, bottom: 30 },
   };
