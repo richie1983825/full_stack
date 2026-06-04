@@ -182,7 +182,7 @@ export default function DashboardListPage() {
       </div>
 
       {selectedIds.length > 0 && (
-        <div style={{ marginBottom: 12, padding: '8px 12px', background: '#e6f4ff', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div className="selection-bar">
           <span>已选择 <strong>{selectedIds.length}</strong> 个项目</span>
           <Button danger icon={<DeleteOutlined />} onClick={handleBatchDelete}>删除</Button>
           <Button onClick={() => setMoveOpen(true)}>移动</Button>

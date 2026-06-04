@@ -157,7 +157,7 @@ export default function DataSourcePage() {
       </div>
 
       {selectedIds.length > 0 && (
-        <div style={{ marginBottom: 12, padding: '8px 12px', background: '#e6f4ff', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div className="selection-bar">
           <span>已选择 <strong>{selectedIds.length}</strong> 个数据源</span>
           <Button danger icon={<DeleteOutlined />} onClick={handleBatchDelete}>删除</Button>
         </div>
