@@ -174,15 +174,6 @@ pub async fn upsert_schedule(
         .await?
         .ok_or(AuthError::NotFound)?;
 
-    if req.interval_hours < 1 {
-        return Err(AuthError::Validation("intervalHours must be >= 1".into()));
-    }
-
-    let valid_modes = ["dashboard", "today", "yesterday"];
-    if !valid_modes.contains(&req.date_mode.as_str()) {
-        return Err(AuthError::Validation("invalid dateMode".into()));
-    }
-
     let now = Utc::now().fixed_offset();
     let next_run = if req.enabled {
         Some(now)
@@ -198,7 +189,7 @@ pub async fn upsert_schedule(
     let model = if let Some(row) = existing {
         let mut active: dashboard_schedules::ActiveModel = row.into();
         active.enabled = Set(req.enabled);
-        active.interval_hours = Set(req.interval_hours);
+        active.cron_expr = Set(req.cron_expr.clone());
         active.date_mode = Set(req.date_mode);
         active.updated_at = Set(now);
         if req.enabled {
@@ -210,7 +201,7 @@ pub async fn upsert_schedule(
             id: Set(Uuid::new_v4()),
             dashboard_id: Set(dashboard_id),
             enabled: Set(req.enabled),
-            interval_hours: Set(req.interval_hours),
+            cron_expr: Set(req.cron_expr.clone()),
             date_mode: Set(req.date_mode),
             last_run_at: Set(None),
             next_run_at: Set(next_run),
@@ -239,7 +230,7 @@ pub async fn run_due_schedules(db: &DatabaseConnection, cfg: &Config) -> Result<
     for schedule in due {
         let date_mode = schedule.date_mode.clone();
         let dashboard_id = schedule.dashboard_id;
-        let interval = schedule.interval_hours;
+        let _cron = schedule.cron_expr.clone();
 
         let result = create_snapshot(
             db,
@@ -271,9 +262,13 @@ pub async fn run_due_schedules(db: &DatabaseConnection, cfg: &Config) -> Result<
             }
         }
 
+        // 计算 cron 下次执行时间
+        let next = cron_next(&schedule.cron_expr, now)
+            .unwrap_or(now + Duration::hours(24));
+
         let mut active: dashboard_schedules::ActiveModel = schedule.into();
         active.last_run_at = Set(Some(now));
-        active.next_run_at = Set(Some(now + Duration::hours(interval as i64)));
+        active.next_run_at = Set(Some(next));
         active.updated_at = Set(now);
         let _ = active.update(db).await;
     }
@@ -484,12 +479,26 @@ fn sql_result_to_echarts(
     }
 }
 
+/// 计算 cron 表达式的下一次触发时间
+fn cron_next(expr: &str, from: chrono::DateTime<chrono::FixedOffset>) -> Option<chrono::DateTime<chrono::FixedOffset>> {
+    use cron::Schedule;
+    use std::str::FromStr;
+
+    let schedule = Schedule::from_str(expr).ok()?;
+    // cron crate uses Utc by default; convert our FixedOffset to Utc
+    let from_utc = from.with_timezone(&chrono::Utc);
+    let next_utc = schedule.upcoming(chrono::Utc).next()?;
+    // Preserve offset from original time
+    let offset = from.offset();
+    Some(next_utc.with_timezone(&chrono::FixedOffset::east_opt(offset.local_minus_utc())?))
+}
+
 fn to_schedule_dto(model: dashboard_schedules::Model) -> ScheduleDto {
     ScheduleDto {
         id: model.id,
         dashboard_id: model.dashboard_id,
         enabled: model.enabled,
-        interval_hours: model.interval_hours,
+        cron_expr: model.cron_expr,
         date_mode: model.date_mode,
         last_run_at: model.last_run_at.map(|t| t.to_rfc3339()),
         next_run_at: model.next_run_at.map(|t| t.to_rfc3339()),

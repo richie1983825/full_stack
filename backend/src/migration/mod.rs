@@ -5,6 +5,7 @@ mod m20250603_000002_create_dashboards;
 mod m20250603_000003_create_snapshots;
 mod m20250603_000004_create_datasources;
 mod m20250603_000005_add_folder_support;
+mod m20250603_000006_cron_schedule;
 
 pub struct Migrator;
 
@@ -17,6 +18,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20250603_000003_create_snapshots::Migration),
             Box::new(m20250603_000004_create_datasources::Migration),
             Box::new(m20250603_000005_add_folder_support::Migration),
+            Box::new(m20250603_000006_cron_schedule::Migration),
         ]
     }
 }

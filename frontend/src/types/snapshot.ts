@@ -13,8 +13,8 @@ export interface DashboardSchedule {
   id: string;
   dashboardId: string;
   enabled: boolean;
-  intervalHours: number;
-  dateMode: 'dashboard' | 'today' | 'yesterday';
+  cronExpr: string;
+  dateMode: string;
   lastRunAt?: string;
   nextRunAt?: string;
 }
@@ -26,6 +26,6 @@ export interface CreateSnapshotPayload {
 
 export interface UpsertSchedulePayload {
   enabled: boolean;
-  intervalHours: number;
-  dateMode: 'dashboard' | 'today' | 'yesterday';
+  cronExpr: string;
+  dateMode?: string;
 }

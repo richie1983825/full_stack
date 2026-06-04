@@ -10,9 +10,7 @@ import {
   Drawer,
   Form,
   Input,
-  InputNumber,
   Popconfirm,
-  Select,
   Space,
   Switch,
   Table,
@@ -51,8 +49,7 @@ export default function SnapshotDrawer({
 
   const [form] = Form.useForm<{
     enabled: boolean;
-    intervalHours: number;
-    dateMode: DashboardSchedule['dateMode'];
+    cronExpr: string;
   }>();
 
   const loadData = useCallback(async () => {
@@ -66,8 +63,7 @@ export default function SnapshotDrawer({
       setSchedule(sched);
       form.setFieldsValue({
         enabled: sched?.enabled ?? false,
-        intervalHours: sched?.intervalHours ?? 24,
-        dateMode: sched?.dateMode ?? 'dashboard',
+        cronExpr: sched?.cronExpr ?? '0 16 * * *',
       });
     } catch (err) {
       message.error(err instanceof Error ? err.message : '加载快照数据失败');
@@ -104,7 +100,10 @@ export default function SnapshotDrawer({
     const values = await form.validateFields();
     setSavingSchedule(true);
     try {
-      const saved = await snapshotApi.upsertSchedule(dashboardId, values);
+      const saved = await snapshotApi.upsertSchedule(dashboardId, {
+        ...values,
+        dateMode: 'yesterday',
+      });
       setSchedule(saved);
       message.success(values.enabled ? '定期快照已启用' : '定期快照已关闭');
     } catch (err) {
@@ -276,24 +275,16 @@ export default function SnapshotDrawer({
                   <Switch />
                 </Form.Item>
                 <Form.Item
-                  name="intervalHours"
-                  label="间隔（小时）"
-                  rules={[{ required: true, message: '请输入间隔' }]}
+                  name="cronExpr"
+                  label="Cron 表达式"
+                  rules={[{ required: true, message: '请输入 Cron 表达式' }]}
+                  extra={
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                      格式：分 时 日 月 周。如「0 16 * * *」= 每天 16:00。数据日期用 ${'{date-1}'}（前一天）、${'{date}'}（当天）
+                    </Text>
+                  }
                 >
-                  <InputNumber min={1} max={168} style={{ width: '100%' }} />
-                </Form.Item>
-                <Form.Item
-                  name="dateMode"
-                  label="数据日期"
-                  rules={[{ required: true }]}
-                >
-                  <Select
-                    options={[
-                      { value: 'dashboard', label: '使用仪表盘当前日期' },
-                      { value: 'today', label: '当天' },
-                      { value: 'yesterday', label: '昨天' },
-                    ]}
-                  />
+                  <Input placeholder="0 16 * * *" />
                 </Form.Item>
                 {schedule?.lastRunAt && (
                   <Text type="secondary" style={{ display: 'block', marginBottom: 12 }}>

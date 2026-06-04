@@ -342,8 +342,8 @@ export const handlers = [
 
     const body = (await request.json()) as {
       enabled: boolean;
-      intervalHours: number;
-      dateMode: DashboardSchedule['dateMode'];
+      cronExpr: string;
+      dateMode: string;
     };
 
     const now = new Date();
@@ -351,7 +351,7 @@ export const handlers = [
       id: mockScheduleStore.get(params.id as string)?.id ?? newMockId(),
       dashboardId: params.id as string,
       enabled: body.enabled,
-      intervalHours: body.intervalHours,
+      cronExpr: body.cronExpr,
       dateMode: body.dateMode,
       lastRunAt: mockScheduleStore.get(params.id as string)?.lastRunAt,
       nextRunAt: body.enabled ? now.toISOString() : undefined,

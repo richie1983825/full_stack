@@ -9,7 +9,7 @@ pub struct Model {
     #[sea_orm(unique)]
     pub dashboard_id: Uuid,
     pub enabled: bool,
-    pub interval_hours: i32,
+    pub cron_expr: String,
     pub date_mode: String,
     pub last_run_at: Option<DateTimeWithTimeZone>,
     pub next_run_at: Option<DateTimeWithTimeZone>,
