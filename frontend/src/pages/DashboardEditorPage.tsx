@@ -3,6 +3,7 @@ import {
   Button,
   Dropdown,
   Input,
+  Modal,
   Space,
   Spin,
   Switch,
@@ -51,6 +52,7 @@ export default function DashboardEditorPage() {
   const [editingPanel, setEditingPanel] = useState<PanelConfig | null>(null);
   const [saving, setSaving] = useState(false);
   const [snapshotOpen, setSnapshotOpen] = useState(false);
+  const [dirty, setDirty] = useState(false);
 
   useEffect(() => {
     setEditMode(isEditMode);
@@ -67,11 +69,31 @@ export default function DashboardEditorPage() {
     setSaving(true);
     try {
       await saveDashboard();
+      setDirty(false);
       message.success('已保存');
     } catch (err) {
       message.error(err instanceof Error ? err.message : '保存失败');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    if (dirty) {
+      Modal.confirm({
+        title: '放弃修改',
+        content: '当前有未保存的修改，确定要放弃吗？',
+        okText: '放弃',
+        cancelText: '继续编辑',
+        onOk: () => {
+          window.history.replaceState(null, '', window.location.pathname);
+          void loadDashboard(id!).then(() => setDirty(false));
+          setEditMode(false);
+        },
+      });
+    } else {
+      window.history.replaceState(null, '', window.location.pathname);
+      setEditMode(false);
     }
   };
 
@@ -151,27 +173,26 @@ export default function DashboardEditorPage() {
             <Button icon={<CameraOutlined />} onClick={() => setSnapshotOpen(true)}>
               快照
             </Button>
-            {editMode && (
-              <>
-                <Dropdown menu={{ items: addMenuItems }}>
-                  <Button type="primary" icon={<PlusOutlined />}>
-                    添加组件
-                  </Button>
-                </Dropdown>
-                <Button icon={<CodeOutlined />} onClick={() => setJsonDrawerOpen(true)}>
-                  JSON 配置
-                </Button>
-                <Button
-                  type="primary"
-                  icon={<SaveOutlined />}
-                  loading={saving}
-                  onClick={() => void handleSave()}
-                >
-                  保存
-                </Button>
-              </>
-            )}
           </Space>
+          {editMode && (
+            <Space wrap>
+              <Dropdown menu={{ items: addMenuItems }}>
+                <Button icon={<PlusOutlined />}>添加组件</Button>
+              </Dropdown>
+              <Button icon={<CodeOutlined />} onClick={() => setJsonDrawerOpen(true)}>
+                JSON 配置
+              </Button>
+              <Button onClick={handleCancel}>取消</Button>
+              <Button
+                type="primary"
+                icon={<SaveOutlined />}
+                loading={saving}
+                onClick={() => void handleSave()}
+              >
+                保存
+              </Button>
+            </Space>
+          )}
         </div>
       </div>
 
