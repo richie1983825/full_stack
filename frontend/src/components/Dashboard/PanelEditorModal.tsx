@@ -125,7 +125,7 @@ export default function PanelEditorModal({
         </Form.Item>
         {chartType === 'table' && (
           <Form.Item label="分页" style={{ marginBottom: 0 }}>
-            <Form.Item name="paginationEnabled" valuePropName="checked" style={{ display: 'inline-block', marginRight: 16 }}>
+            <Form.Item name="paginationEnabled" valuePropName="checked" style={{ display: 'inline-block', marginRight: 8, marginBottom: 0 }}>
               <Switch />
             </Form.Item>
             <Form.Item
@@ -134,9 +134,13 @@ export default function PanelEditorModal({
             >
               {({ getFieldValue }) =>
                 getFieldValue('paginationEnabled') ? (
-                  <Form.Item name="paginationPageSize" label="每页条数" style={{ display: 'inline-block' }}>
-                    <InputNumber min={5} max={200} style={{ width: 100 }} />
-                  </Form.Item>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <span>每页</span>
+                    <Form.Item name="paginationPageSize" noStyle>
+                      <InputNumber min={5} max={200} style={{ width: 80 }} />
+                    </Form.Item>
+                    <span>条</span>
+                  </span>
                 ) : null
               }
             </Form.Item>
