@@ -9,6 +9,7 @@ interface PanelEditorModalProps {
   panel: PanelConfig | null;
   onCancel: () => void;
   onSave: (panel: PanelConfig) => void;
+  variables?: Record<string, string>;
 }
 
 const chartTypeOptions = [
@@ -32,6 +33,7 @@ export default function PanelEditorModal({
   panel,
   onCancel,
   onSave,
+  variables,
 }: PanelEditorModalProps) {
   const [form] = Form.useForm();
   const [sqlQuery, setSqlQuery] = useState<SqlQueryState>({});
@@ -180,6 +182,7 @@ export default function PanelEditorModal({
           sqlColumns={sqlQuery.sqlColumns}
           sqlWhere={sqlQuery.sqlWhere}
           sqlOrderBy={sqlQuery.sqlOrderBy}
+          variables={variables}
           onChange={(values) => setSqlQuery((prev) => ({ ...prev, ...values }))}
         />
       </Form>

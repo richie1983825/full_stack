@@ -17,6 +17,8 @@ interface SqlQueryEditorProps {
   sqlColumns?: string[];
   sqlWhere?: string;
   sqlOrderBy?: string;
+  /** 仪表盘变量，用于替换 SQL 中的 ${var} */
+  variables?: Record<string, string>;
   onChange: (values: {
     datasourceId?: string;
     sql?: string;
@@ -36,6 +38,7 @@ export default function SqlQueryEditor({
   sqlColumns,
   sqlWhere,
   sqlOrderBy,
+  variables,
   onChange,
 }: SqlQueryEditorProps) {
   const [dataSources, setDataSources] = useState<DataSource[]>([]);
@@ -154,7 +157,14 @@ export default function SqlQueryEditor({
     }
     setPreviewLoading(true);
     try {
-      const result = await datasourceApi.query(datasourceId, querySql);
+      // 替换变量 ${date} 等
+      let finalSql = querySql;
+      if (variables) {
+        for (const [key, value] of Object.entries(variables)) {
+          finalSql = finalSql.replace(new RegExp(`\\$\\{${key}\\}`, 'g'), value);
+        }
+      }
+      const result = await datasourceApi.query(datasourceId, finalSql);
       setPreview(result);
       setResultColumns(result.fields.map((f) => ({ name: f.name, dataType: f.type })));
     } catch (err) {

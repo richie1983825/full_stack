@@ -231,6 +231,7 @@ export default function DashboardEditorPage() {
         panel={editingPanel}
         onCancel={() => setEditingPanel(null)}
         onSave={(panel) => void handlePanelSave(panel)}
+        variables={currentDashboard.variables}
       />
 
       <DashboardJsonDrawer />
