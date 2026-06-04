@@ -2,6 +2,7 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { Link, Navigate, Outlet, useLocation } from 'react-router-dom';
 import {
   LogoutOutlined,
+  SafetyCertificateOutlined,
 } from '@ant-design/icons';
 import { Breadcrumb, Button, Dropdown, Layout, Menu } from 'antd';
 import type { MenuProps } from 'antd';
@@ -127,6 +128,10 @@ export default function GrafanaLayout() {
     <Layout className="grafana-shell">
       <Header className="grafana-topbar">
         <div className="grafana-topbar-inner">
+          <Link to={homePath} className="grafana-brand">
+            <SafetyCertificateOutlined />
+            <span>容量管理平台</span>
+          </Link>
           <Menu
             mode="horizontal"
             selectedKeys={selectedKeys}

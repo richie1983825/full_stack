@@ -58,6 +58,20 @@ html, body, #root {
   gap: 0;
 }
 
+.grafana-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  width: 200px;
+  color: #fff;
+  font-weight: 600;
+  font-size: 15px;
+  text-decoration: none;
+}
+
+.grafana-brand:hover { color: #fff; opacity: 0.9; }
+
 .grafana-top-menu {
   flex: 1;
   min-width: 0;
