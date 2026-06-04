@@ -147,17 +147,21 @@ export default function PanelEditorModal({
         )}
         <Form.Item label="位置与大小" style={{ marginBottom: 0 }}>
           <Input.Group compact>
+            <span style={{ display: 'inline-block', padding: '4px 6px', border: '1px solid #d9d9d9', borderRadius: '6px 0 0 6px', background: '#fafafa', fontSize: 13 }}>列</span>
             <Form.Item name="x" noStyle>
-              <InputNumber min={0} max={11} style={{ width: '25%' }} placeholder="列" />
+              <InputNumber min={0} max={11} style={{ width: 50, borderLeft: 0, borderRadius: 0 }} />
             </Form.Item>
+            <span style={{ display: 'inline-block', padding: '4px 6px', border: '1px solid #d9d9d9', background: '#fafafa', fontSize: 13, marginLeft: -1 }}>行</span>
             <Form.Item name="y" noStyle>
-              <InputNumber min={0} style={{ width: '25%' }} placeholder="行" />
+              <InputNumber min={0} style={{ width: 50, borderLeft: 0, borderRadius: 0 }} />
             </Form.Item>
+            <span style={{ display: 'inline-block', padding: '4px 6px', border: '1px solid #d9d9d9', background: '#fafafa', fontSize: 13, marginLeft: -1 }}>宽</span>
             <Form.Item name="w" noStyle>
-              <InputNumber min={1} max={12} style={{ width: '25%' }} placeholder="宽" />
+              <InputNumber min={1} max={12} style={{ width: 50, borderLeft: 0, borderRadius: 0 }} />
             </Form.Item>
+            <span style={{ display: 'inline-block', padding: '4px 6px', border: '1px solid #d9d9d9', background: '#fafafa', fontSize: 13, marginLeft: -1 }}>高</span>
             <Form.Item name="h" noStyle>
-              <InputNumber min={1} max={12} style={{ width: '25%' }} placeholder="高" />
+              <InputNumber min={1} max={12} style={{ width: 50, borderLeft: 0, borderRadius: '0 6px 6px 0' }} />
             </Form.Item>
           </Input.Group>
         </Form.Item>
