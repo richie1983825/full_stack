@@ -312,14 +312,12 @@ async fn hydrate_sql_panels_for_snapshot(
             .and_then(|q| q.get("datasourceId"))
             .and_then(|v| v.as_str());
 
-        let sql = panel
-            .get("query")
-            .and_then(|q| q.get("sql"))
-            .and_then(|v| v.as_str());
+        // 与前端 resolveSql() 保持一致：Builder 模式从字段组装 SQL
+        let sql = resolve_panel_sql(panel);
 
         let mut out = panel.clone();
 
-        if let (Some(ds_id), Some(query_sql)) = (datasource_id, sql) {
+        if let (Some(ds_id), Some(query_sql)) = (datasource_id, sql.as_deref()) {
             if let Ok(ds_uuid) = Uuid::parse_str(ds_id) {
                 match datasources::query_datasource_sql(db, cfg, ds_uuid, query_sql).await {
                     Ok(result) => {
@@ -340,6 +338,42 @@ async fn hydrate_sql_panels_for_snapshot(
     }
 
     Ok(json!(hydrated))
+}
+
+/// 与前端 resolveSql() 保持一致：Builder 模式从字段组装 SQL
+fn resolve_panel_sql(panel: &Value) -> Option<String> {
+    let q = panel.get("query")?;
+    let sql_mode = q.get("sqlMode").and_then(|v| v.as_str());
+
+    if sql_mode == Some("builder") {
+        let table = q.get("sqlTable").and_then(|v| v.as_str())?;
+        let columns = q.get("sqlColumns").and_then(|v| v.as_array());
+        let where_clause = q.get("sqlWhere").and_then(|v| v.as_str()).unwrap_or("");
+        let order_by = q.get("sqlOrderBy").and_then(|v| v.as_str()).unwrap_or("");
+
+        let cols = match columns {
+            Some(arr) if !arr.is_empty() => {
+                arr.iter()
+                    .filter_map(|v| v.as_str().map(|s| format!("\"{}\"", s)))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            }
+            _ => "*".to_string(),
+        };
+
+        let mut s = format!("SELECT {} FROM \"{}\"", cols, table);
+        if !where_clause.is_empty() {
+            s.push_str(&format!(" WHERE {}", where_clause));
+        }
+        if !order_by.is_empty() {
+            s.push_str(&format!(" ORDER BY {}", order_by));
+        }
+        s.push_str(" LIMIT 100");
+        return Some(s);
+    }
+
+    // Code 模式：直接用 sql 字段
+    q.get("sql").and_then(|v| v.as_str()).map(String::from)
 }
 
 /// 将 SQL 查询结果转换为 ECharts option（简单版，用于快照）
