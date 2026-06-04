@@ -1,6 +1,7 @@
-import { Alert, Button, Drawer, Input, Space, message } from 'antd';
+import { Alert, Button, Drawer, Space, message } from 'antd';
 import { useEffect, useState } from 'react';
 import { useDashboardStore } from '../../stores/useDashboardStore';
+import JsonEditor from '../Layout/JsonEditor';
 
 export default function DashboardJsonDrawer() {
   const { currentDashboard, jsonDrawerOpen, setJsonDrawerOpen, applyJsonConfig, saveDashboard } =
@@ -76,12 +77,7 @@ export default function DashboardJsonDrawer() {
         style={{ marginBottom: 12 }}
       />
       {error && <Alert type="error" message={error} showIcon style={{ marginBottom: 12 }} />}
-      <Input.TextArea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        rows={28}
-        style={{ fontFamily: 'Menlo, Monaco, Consolas, monospace', fontSize: 12 }}
-      />
+      <JsonEditor value={text} onChange={setText} rows={28} />
     </Drawer>
   );
 }
