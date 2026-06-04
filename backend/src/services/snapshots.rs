@@ -495,3 +495,44 @@ fn to_schedule_dto(model: dashboard_schedules::Model) -> ScheduleDto {
         next_run_at: model.next_run_at.map(|t| t.to_rfc3339()),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn resolve_code_mode_replaces_date() {
+        let panel = json!({
+            "query": { "sql": "SELECT * FROM t WHERE dt = '${date}'", "sqlMode": "code" }
+        });
+        let vars = json!({ "date": "2026-06-03" });
+        let sql = resolve_panel_sql(&panel, &vars).unwrap();
+        assert_eq!(sql, "SELECT * FROM t WHERE dt = '2026-06-03'");
+    }
+
+    #[test]
+    fn resolve_builder_mode() {
+        let panel = json!({
+            "query": {
+                "sqlMode": "builder", "sqlTable": "users",
+                "sqlColumns": ["name", "email"],
+                "sqlWhere": "active = true",
+                "sqlOrderBy": "name ASC"
+            }
+        });
+        let sql = resolve_panel_sql(&panel, &json!({})).unwrap();
+        assert!(sql.contains("SELECT \"name\", \"email\" FROM \"users\""));
+        assert!(sql.contains("WHERE active = true"));
+        assert!(sql.contains("ORDER BY name ASC"));
+    }
+
+    #[test]
+    fn resolve_empty_variables_preserves_placeholder() {
+        let panel = json!({
+            "query": { "sql": "SELECT * FROM t WHERE dt = '${date}'", "sqlMode": "code" }
+        });
+        let sql = resolve_panel_sql(&panel, &json!({})).unwrap();
+        assert!(sql.contains("${date}"));
+    }
+}
