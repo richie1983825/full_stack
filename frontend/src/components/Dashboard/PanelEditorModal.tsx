@@ -126,7 +126,7 @@ export default function PanelEditorModal({
         </Form.Item>
 
         {/* ===== 显示 ===== */}
-        <Divider orientation="left" style={{ fontSize: 13, margin: '12px 0 8px' }}>显示</Divider>
+        <Divider style={{ fontSize: 13, margin: '12px 0 8px' }}>显示</Divider>
         <Form.Item label="位置与大小" style={{ marginBottom: 8 }}>
           <Input.Group compact>
             <span style={{ display: 'inline-block', padding: '4px 6px', border: '1px solid #d9d9d9', borderRadius: '6px 0 0 6px', background: '#fafafa', fontSize: 13 }}>列</span>
