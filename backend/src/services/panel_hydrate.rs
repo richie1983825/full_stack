@@ -209,12 +209,15 @@ pub fn hydrate_panels_for_snapshot(panels: &Value, metrics: &[NetworkMetric]) ->
         .iter()
         .map(|panel| {
             let mut out = panel.clone();
-            if let Some(obj) = out.as_object_mut() {
-                obj.remove("query");
-            }
 
             if panel_query_source(panel) != Some("network_metrics") {
+                // 非 network_metrics 面板（如 SQL 面板）保留 query，后续由 hydrate_sql_panels 处理
                 return out;
+            }
+
+            // network_metrics 面板：移除 query，嵌入 option
+            if let Some(obj) = out.as_object_mut() {
+                obj.remove("query");
             }
 
             let limit = panel
