@@ -6,11 +6,10 @@ import {
   HomeOutlined,
   KeyOutlined,
   LogoutOutlined,
-  SafetyCertificateOutlined,
   TeamOutlined,
   UserOutlined,
 } from '@ant-design/icons';
-import { Breadcrumb, Button, Dropdown, Layout, Menu, Space, Typography } from 'antd';
+import { Breadcrumb, Button, Dropdown, Layout, Menu, Space } from 'antd';
 import type { MenuProps } from 'antd';
 import HomePageSettingsModal from '../components/Layout/HomePageSettingsModal';
 import { useAuthStore } from '../stores/useAuthStore';
@@ -18,7 +17,6 @@ import { useHomePageStore } from '../stores/useHomePageStore';
 import { isHomePath } from '../utils/homePage';
 
 const { Header, Content } = Layout;
-const { Text } = Typography;
 
 const breadcrumbMap: Record<string, string> = {
   '/': '仪表盘',
@@ -141,11 +139,6 @@ export default function GrafanaLayout() {
     <Layout className="grafana-shell">
       <Header className="grafana-topbar">
         <div className="grafana-topbar-inner">
-          <Link to={homePath} className="grafana-brand">
-            <SafetyCertificateOutlined />
-            <span>容量管理平台</span>
-          </Link>
-
           <Menu
             mode="horizontal"
             selectedKeys={selectedKeys}
@@ -158,7 +151,7 @@ export default function GrafanaLayout() {
               <Button type="text" className="grafana-user-btn">
                 <Space size={6}>
                   <UserOutlined />
-                  <Text>{user?.display_name ?? user?.username}</Text>
+                  <span style={{ color: 'rgba(255,255,255,0.85)' }}>{user?.display_name ?? user?.username}</span>
                 </Space>
               </Button>
             </Dropdown>
