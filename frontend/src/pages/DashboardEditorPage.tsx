@@ -123,7 +123,7 @@ export default function DashboardEditorPage() {
     updatePanel(panel);
     setEditingPanel(null);
     try {
-      const hydrated = await hydratePanelOption(panel, currentDashboard.variables);
+      const hydrated = await hydratePanelOption(panel, currentDashboard?.variables);
       updatePanel(hydrated);
     } catch {
       /* keep manual option */
