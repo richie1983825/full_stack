@@ -60,7 +60,7 @@ pub async fn create_snapshot(
     let mut panels = hydrate_panels_for_snapshot(&dashboard.panels, &metrics);
 
     // 再为 SQL 数据源面板水合数据
-    panels = hydrate_sql_panels_for_snapshot(db, cfg, &panels).await?;
+    panels = hydrate_sql_panels_for_snapshot(db, cfg, &panels, &variables).await?;
     let generated_at = Utc::now().format("%Y-%m-%d %H:%M:%S UTC").to_string();
     let snapshot_title = req
         .title
@@ -299,6 +299,7 @@ async fn hydrate_sql_panels_for_snapshot(
     db: &DatabaseConnection,
     cfg: &Config,
     panels: &Value,
+    variables: &Value,
 ) -> Result<Value, AuthError> {
     use crate::services::datasources;
     let Some(items) = panels.as_array() else {
@@ -313,7 +314,7 @@ async fn hydrate_sql_panels_for_snapshot(
             .and_then(|v| v.as_str());
 
         // 与前端 resolveSql() 保持一致：Builder 模式从字段组装 SQL
-        let sql = resolve_panel_sql(panel);
+        let sql = resolve_panel_sql(panel, variables);
 
         let mut out = panel.clone();
 
@@ -340,12 +341,12 @@ async fn hydrate_sql_panels_for_snapshot(
     Ok(json!(hydrated))
 }
 
-/// 与前端 resolveSql() 保持一致：Builder 模式从字段组装 SQL
-fn resolve_panel_sql(panel: &Value) -> Option<String> {
+/// 与前端 resolveSql() 保持一致：Builder 模式从字段组装 SQL，支持 ${var} 替换
+fn resolve_panel_sql(panel: &Value, variables: &Value) -> Option<String> {
     let q = panel.get("query")?;
     let sql_mode = q.get("sqlMode").and_then(|v| v.as_str());
 
-    if sql_mode == Some("builder") {
+    let mut sql = if sql_mode == Some("builder") {
         let table = q.get("sqlTable").and_then(|v| v.as_str())?;
         let columns = q.get("sqlColumns").and_then(|v| v.as_array());
         let where_clause = q.get("sqlWhere").and_then(|v| v.as_str()).unwrap_or("");
@@ -369,11 +370,23 @@ fn resolve_panel_sql(panel: &Value) -> Option<String> {
             s.push_str(&format!(" ORDER BY {}", order_by));
         }
         s.push_str(" LIMIT 100");
-        return Some(s);
+        s
+    } else {
+        q.get("sql").and_then(|v| v.as_str())?.to_string()
+    };
+
+    // 替换变量 ${date} 等
+    if let Some(obj) = variables.as_object() {
+        for (key, value) in obj {
+            let replacement = match value {
+                Value::String(s) => s.clone(),
+                other => other.to_string().trim_matches('"').to_string(),
+            };
+            sql = sql.replace(&format!("${{{}}}", key), &replacement);
+        }
     }
 
-    // Code 模式：直接用 sql 字段
-    q.get("sql").and_then(|v| v.as_str()).map(String::from)
+    Some(sql)
 }
 
 /// 将 SQL 查询结果转换为 ECharts option（简单版，用于快照）
