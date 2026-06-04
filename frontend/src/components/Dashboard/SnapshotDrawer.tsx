@@ -277,7 +277,13 @@ export default function SnapshotDrawer({
                 <Form.Item
                   name="cronExpr"
                   label="Cron 表达式"
-                  rules={[{ required: true, message: '请输入 Cron 表达式' }]}
+                  rules={[
+                    { required: true, message: '请输入 Cron 表达式' },
+                    {
+                      pattern: /^(\*|\d+(-\d+)?(\/\d+)?)(\s+(\*|\d+(-\d+)?(\/\d+)?)){4}$/,
+                      message: '格式错误，应为 5 段：分 时 日 月 周',
+                    },
+                  ]}
                   extra="格式：分 时 日 月 周。如「0 16 * * *」= 每天 16:00"
                 >
                   <Input placeholder="0 16 * * *" />
