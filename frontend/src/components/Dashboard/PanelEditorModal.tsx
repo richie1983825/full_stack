@@ -124,8 +124,8 @@ export default function PanelEditorModal({
           />
         </Form.Item>
         {chartType === 'table' && (
-          <Form.Item label="分页" style={{ marginBottom: 0 }}>
-            <Form.Item name="paginationEnabled" valuePropName="checked" style={{ display: 'inline-block', marginRight: 8, marginBottom: 0 }}>
+          <Form.Item label="分页" labelCol={{ span: 4 }} wrapperCol={{ span: 20 }}>
+            <Form.Item name="paginationEnabled" valuePropName="checked" style={{ display: 'inline-block', marginBottom: 0, marginRight: 24 }}>
               <Switch />
             </Form.Item>
             <Form.Item
@@ -137,9 +137,8 @@ export default function PanelEditorModal({
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                     <span>每页</span>
                     <Form.Item name="paginationPageSize" noStyle>
-                      <InputNumber min={5} max={200} style={{ width: 80 }} />
+                      <Select style={{ width: 90 }} options={[20, 50, 100, 1000].map((n) => ({ label: `${n} 条`, value: n }))} />
                     </Form.Item>
-                    <span>条</span>
                   </span>
                 ) : null
               }
