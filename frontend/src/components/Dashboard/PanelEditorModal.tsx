@@ -145,19 +145,19 @@ export default function PanelEditorModal({
             </Form.Item>
           </Form.Item>
         )}
-        <Form.Item label="布局 (x / y / w / h)" style={{ marginBottom: 0 }}>
+        <Form.Item label="位置与大小" style={{ marginBottom: 0 }}>
           <Input.Group compact>
             <Form.Item name="x" noStyle>
-              <InputNumber min={0} max={11} style={{ width: '25%' }} placeholder="x" />
+              <InputNumber min={0} max={11} style={{ width: '25%' }} placeholder="列" />
             </Form.Item>
             <Form.Item name="y" noStyle>
-              <InputNumber min={0} style={{ width: '25%' }} placeholder="y" />
+              <InputNumber min={0} style={{ width: '25%' }} placeholder="行" />
             </Form.Item>
             <Form.Item name="w" noStyle>
-              <InputNumber min={1} max={12} style={{ width: '25%' }} placeholder="w" />
+              <InputNumber min={1} max={12} style={{ width: '25%' }} placeholder="宽" />
             </Form.Item>
             <Form.Item name="h" noStyle>
-              <InputNumber min={1} max={12} style={{ width: '25%' }} placeholder="h" />
+              <InputNumber min={1} max={12} style={{ width: '25%' }} placeholder="高" />
             </Form.Item>
           </Input.Group>
         </Form.Item>
