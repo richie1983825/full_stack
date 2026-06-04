@@ -145,7 +145,7 @@ export default function PanelEditorModal({
             </Form.Item>
             <span style={{ display: 'inline-block', padding: '4px 6px', border: '1px solid #d9d9d9', background: '#fafafa', fontSize: 13, marginLeft: -1 }}>高</span>
             <Form.Item name="h" noStyle>
-              <InputNumber min={1} max={12} style={{ width: 50, borderLeft: 0, borderRadius: '0 6px 6px 0' }} />
+              <InputNumber min={1} style={{ width: 50, borderLeft: 0, borderRadius: '0 6px 6px 0' }} />
             </Form.Item>
           </Input.Group>
         </Form.Item>
