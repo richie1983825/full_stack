@@ -36,6 +36,11 @@ export interface PanelConfig {
   option?: Record<string, unknown>;
   grid: PanelGrid;
   query?: PanelQuery;
+  /** 表格分页配置 */
+  pagination?: {
+    enabled: boolean;
+    pageSize: number;
+  };
 }
 
 export interface Dashboard {

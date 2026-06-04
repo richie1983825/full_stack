@@ -1,4 +1,4 @@
-import { Form, Input, InputNumber, Modal, Select } from 'antd';
+import { Form, Input, InputNumber, Modal, Select, Switch } from 'antd';
 import { useEffect, useState } from 'react';
 import type { PanelChartType, PanelConfig, SqlMode } from '../../types/dashboard';
 import { datasourceApi } from '../../api/datasource';
@@ -35,11 +35,13 @@ export default function PanelEditorModal({
 }: PanelEditorModalProps) {
   const [form] = Form.useForm();
   const [sqlQuery, setSqlQuery] = useState<SqlQueryState>({});
+  const [chartType, setChartType] = useState<PanelChartType>('line');
 
   useEffect(() => {
     if (!panel || !open) return;
 
     const q = panel.query;
+    setChartType(panel.chartType);
     form.setFieldsValue({
       title: panel.title,
       chartType: panel.chartType,
@@ -47,6 +49,8 @@ export default function PanelEditorModal({
       y: panel.grid.y,
       w: panel.grid.w,
       h: panel.grid.h,
+      paginationEnabled: panel.pagination?.enabled ?? false,
+      paginationPageSize: panel.pagination?.pageSize ?? 10,
     });
 
     const state: SqlQueryState = {
@@ -91,6 +95,10 @@ export default function PanelEditorModal({
         sqlWhere: sqlQuery.sqlWhere,
         sqlOrderBy: sqlQuery.sqlOrderBy,
       },
+      pagination: {
+        enabled: values.paginationEnabled ?? false,
+        pageSize: values.paginationPageSize ?? 10,
+      },
     });
   };
 
@@ -110,8 +118,30 @@ export default function PanelEditorModal({
           <Input />
         </Form.Item>
         <Form.Item name="chartType" label="类型" rules={[{ required: true }]}>
-          <Select options={chartTypeOptions} />
+          <Select
+            options={chartTypeOptions}
+            onChange={(val) => setChartType(val as PanelChartType)}
+          />
         </Form.Item>
+        {chartType === 'table' && (
+          <Form.Item label="分页" style={{ marginBottom: 0 }}>
+            <Form.Item name="paginationEnabled" valuePropName="checked" style={{ display: 'inline-block', marginRight: 16 }}>
+              <Switch />
+            </Form.Item>
+            <Form.Item
+              noStyle
+              shouldUpdate={(prev, cur) => prev.paginationEnabled !== cur.paginationEnabled}
+            >
+              {({ getFieldValue }) =>
+                getFieldValue('paginationEnabled') ? (
+                  <Form.Item name="paginationPageSize" label="每页条数" style={{ display: 'inline-block' }}>
+                    <InputNumber min={5} max={200} style={{ width: 100 }} />
+                  </Form.Item>
+                ) : null
+              }
+            </Form.Item>
+          </Form.Item>
+        )}
         <Form.Item label="布局 (x / y / w / h)" style={{ marginBottom: 0 }}>
           <Input.Group compact>
             <Form.Item name="x" noStyle>

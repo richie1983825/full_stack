@@ -85,6 +85,11 @@ export default function ChartRenderer({ config }: ChartRendererProps) {
     const data = sortNetworkMetricRows(rawData, tableOption.orderBy);
     const columns = buildColumns(fields, data);
 
+    const pagination =
+      config.pagination?.enabled
+        ? { pageSize: config.pagination.pageSize, showSizeChanger: false }
+        : false;
+
     return (
       <Table
         className="panel-table"
@@ -92,7 +97,7 @@ export default function ChartRenderer({ config }: ChartRendererProps) {
         columns={columns}
         rowKey={(_, i) => String(i)}
         size="small"
-        pagination={false}
+        pagination={pagination}
         scroll={{ x: 'max-content' }}
       />
     );
