@@ -3,7 +3,7 @@ import { Link, Navigate, Outlet, useLocation } from 'react-router-dom';
 import {
   LogoutOutlined,
 } from '@ant-design/icons';
-import { Breadcrumb, Button, Dropdown, Layout, Menu, Space } from 'antd';
+import { Breadcrumb, Button, Dropdown, Layout, Menu } from 'antd';
 import type { MenuProps } from 'antd';
 import HomePageSettingsModal from '../components/Layout/HomePageSettingsModal';
 import { useAuthStore } from '../stores/useAuthStore';
