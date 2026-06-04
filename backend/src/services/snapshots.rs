@@ -4,7 +4,7 @@ use chrono::{Duration, Utc};
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder, Set,
 };
-use serde_json::json;
+use serde_json::{json, Value};
 use uuid::Uuid;
 
 use crate::config::Config;
@@ -51,11 +51,16 @@ pub async fn create_snapshot(
         obj.insert("date".into(), json!(date));
     }
 
+    // 网络指标数据
     let metrics = metrics::query_network_metrics(db, &date)
         .await
         .map_err(|e| AuthError::Internal(e.to_string()))?;
 
-    let panels = hydrate_panels_for_snapshot(&dashboard.panels, &metrics);
+    // 先为 network_metrics 面板水合数据
+    let mut panels = hydrate_panels_for_snapshot(&dashboard.panels, &metrics);
+
+    // 再为 SQL 数据源面板水合数据
+    panels = hydrate_sql_panels_for_snapshot(db, cfg, &panels).await?;
     let generated_at = Utc::now().format("%Y-%m-%d %H:%M:%S UTC").to_string();
     let snapshot_title = req
         .title
@@ -286,6 +291,149 @@ fn to_snapshot_dto(model: dashboard_snapshots::Model, cfg: &Config) -> SnapshotD
         view_url: snapshot_view_url(cfg, &model.snapshot_key),
         created_at: model.created_at.to_rfc3339(),
         expires_at: model.expires_at.map(|t| t.to_rfc3339()),
+    }
+}
+
+/// 为 SQL 数据源面板水合数据（执行 SQL 查询并嵌入 option）
+async fn hydrate_sql_panels_for_snapshot(
+    db: &DatabaseConnection,
+    cfg: &Config,
+    panels: &Value,
+) -> Result<Value, AuthError> {
+    use crate::services::datasources;
+    let Some(items) = panels.as_array() else {
+        return Ok(json!([]));
+    };
+
+    let mut hydrated: Vec<Value> = Vec::with_capacity(items.len());
+    for panel in items {
+        let datasource_id = panel
+            .get("query")
+            .and_then(|q| q.get("datasourceId"))
+            .and_then(|v| v.as_str());
+
+        let sql = panel
+            .get("query")
+            .and_then(|q| q.get("sql"))
+            .and_then(|v| v.as_str());
+
+        let mut out = panel.clone();
+
+        if let (Some(ds_id), Some(query_sql)) = (datasource_id, sql) {
+            if let Ok(ds_uuid) = Uuid::parse_str(ds_id) {
+                match datasources::query_datasource_sql(db, cfg, ds_uuid, query_sql).await {
+                    Ok(result) => {
+                        let option = sql_result_to_echarts(&result, panel);
+                        if let Some(obj) = out.as_object_mut() {
+                            obj.insert("option".into(), option);
+                            obj.remove("query");
+                        }
+                    }
+                    Err(e) => {
+                        log::warn!("Snapshot SQL query failed for panel: {e}");
+                    }
+                }
+            }
+        }
+
+        hydrated.push(out);
+    }
+
+    Ok(json!(hydrated))
+}
+
+/// 将 SQL 查询结果转换为 ECharts option（简单版，用于快照）
+fn sql_result_to_echarts(
+    result: &crate::models::DatasourceQueryResult,
+    panel: &Value,
+) -> Value {
+    let chart_type = panel
+        .get("chartType")
+        .and_then(|v| v.as_str())
+        .unwrap_or("line");
+
+    if chart_type == "table" {
+        let data: Vec<Value> = result
+            .rows
+            .iter()
+            .map(|row| {
+                let map: serde_json::Map<String, Value> = row
+                    .as_object()
+                    .cloned()
+                    .unwrap_or_default()
+                    .into_iter()
+                    .collect();
+                Value::Object(map)
+            })
+            .collect();
+        return json!({
+            "fields": result.fields,
+            "data": data,
+        });
+    }
+
+    // 折线图/柱状图：第一列为类别，其余为数值
+    if result.rows.is_empty() {
+        return json!({
+            "xAxis": { "type": "category", "data": [] },
+            "yAxis": { "type": "value" },
+            "series": [],
+        });
+    }
+
+    let field_names: Vec<String> = result.fields.iter().map(|f| f.name.clone()).collect();
+    let category_field = &field_names[0];
+    let value_fields: Vec<&String> = field_names.iter().skip(1).collect();
+
+    let categories: Vec<String> = result
+        .rows
+        .iter()
+        .map(|r| {
+            r.get(category_field)
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string()
+        })
+        .collect();
+
+    let series: Vec<Value> = value_fields
+        .iter()
+        .map(|vf| {
+            let data: Vec<f64> = result
+                .rows
+                .iter()
+                .map(|r| {
+                    r.get(*vf)
+                        .and_then(|v| v.as_f64())
+                        .or_else(|| r.get(*vf).and_then(|v| v.as_i64().map(|i| i as f64)))
+                        .unwrap_or(0.0)
+                })
+                .collect();
+            json!({
+                "name": vf.as_str(),
+                "type": if chart_type == "bar" { "bar" } else { "line" },
+                "data": data,
+                "smooth": chart_type != "bar",
+            })
+        })
+        .collect();
+
+    if chart_type == "bar" {
+        json!({
+            "tooltip": { "trigger": "axis" },
+            "grid": { "left": 120, "right": 20, "top": 20, "bottom": 30 },
+            "xAxis": { "type": "value" },
+            "yAxis": { "type": "category", "data": categories },
+            "series": series,
+        })
+    } else {
+        json!({
+            "tooltip": { "trigger": "axis" },
+            "legend": { "bottom": 0 },
+            "xAxis": { "type": "category", "data": categories },
+            "yAxis": { "type": "value" },
+            "series": series,
+        })
     }
 }
 
