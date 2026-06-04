@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   Button,
+  DatePicker,
   Dropdown,
   Input,
   Modal,
@@ -21,6 +22,7 @@ import {
   TableOutlined,
 } from '@ant-design/icons';
 
+import dayjs from 'dayjs';
 import { useParams, useSearchParams } from 'react-router-dom';
 import DashboardGrid from '../components/Dashboard/DashboardGrid';
 import DashboardJsonDrawer from '../components/Dashboard/DashboardJsonDrawer';
@@ -53,6 +55,12 @@ export default function DashboardEditorPage() {
   const [saving, setSaving] = useState(false);
   const [snapshotOpen, setSnapshotOpen] = useState(false);
   const [dirty, setDirty] = useState(false);
+
+  // 默认日期：16 点之前用昨天，16 点之后用今天
+  const defaultDate = (() => {
+    const now = dayjs();
+    return now.hour() < 16 ? now.subtract(1, 'day').format('YYYY-MM-DD') : now.format('YYYY-MM-DD');
+  })();
 
   useEffect(() => {
     setEditMode(isEditMode);
@@ -164,6 +172,21 @@ export default function DashboardEditorPage() {
               />
               <span style={{ marginLeft: 6 }}>编辑模式</span>
             </span>
+            <DatePicker
+              value={dayjs(currentDashboard.variables?.date ?? defaultDate)}
+              onChange={(value) => {
+                if (!value) return;
+                useDashboardStore.setState({
+                  currentDashboard: {
+                    ...currentDashboard,
+                    variables: { ...currentDashboard.variables, date: value.format('YYYY-MM-DD') },
+                  },
+                });
+                setDirty(true);
+              }}
+              allowClear={false}
+              style={{ width: 140 }}
+            />
             <Button
               icon={<ReloadOutlined />}
               onClick={() => void refreshPanelData().then(() => message.success('数据已刷新'))}

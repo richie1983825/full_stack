@@ -78,7 +78,7 @@ export const useDashboardStore = create<DashboardStore>((set, get) => ({
     try {
       const raw = await dashboardApi.getById(id);
       const dashboard = mapDashboard(raw as unknown as Record<string, unknown>);
-      const panels = await hydratePanels(dashboard.panels);
+      const panels = await hydratePanels(dashboard.panels, dashboard.variables);
       set({ currentDashboard: { ...dashboard, panels }, loading: false });
     } catch {
       set({ loading: false });

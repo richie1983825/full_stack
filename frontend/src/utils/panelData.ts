@@ -106,9 +106,11 @@ function buildChartFromSqlResult(
 
 // ============ SQL 查询执行 ============
 
-/** 编译 SQL：Code 模式直接用 sql 字段，Builder 模式组合生成 */
-function resolveSql(query: PanelConfig['query']): string | null {
+/** 编译 SQL：Code 模式直接用 sql 字段，Builder 模式组合生成。支持 ${var} 变量替换。 */
+function resolveSql(query: PanelConfig['query'], variables?: Record<string, string>): string | null {
   if (!query) return null;
+
+  let sql: string | null = null;
 
   if (query.sqlMode === 'builder' && query.sqlTable) {
     const cols = query.sqlColumns && query.sqlColumns.length > 0
@@ -118,22 +120,29 @@ function resolveSql(query: PanelConfig['query']): string | null {
     if (query.sqlWhere?.trim()) s += ` WHERE ${query.sqlWhere.trim()}`;
     if (query.sqlOrderBy?.trim()) s += ` ORDER BY ${query.sqlOrderBy.trim()}`;
     s += ' LIMIT 100';
-    return s;
+    sql = s;
+  } else if (query.sql?.trim()) {
+    sql = query.sql.trim();
   }
 
-  if (query.sql?.trim()) {
-    return query.sql.trim();
+  if (!sql) return null;
+
+  // 替换变量 ${date} 等
+  if (variables) {
+    for (const [key, value] of Object.entries(variables)) {
+      sql = sql.replace(new RegExp(`\\$\\{${key}\\}`, 'g'), value);
+    }
   }
 
-  return null;
+  return sql;
 }
 
 /**
  * 使用 SQL 数据源查询为面板填充数据
  */
-async function hydrateFromSql(panel: PanelConfig): Promise<PanelConfig> {
+async function hydrateFromSql(panel: PanelConfig, variables?: Record<string, string>): Promise<PanelConfig> {
   const q = panel.query;
-  const sql = resolveSql(q);
+  const sql = resolveSql(q, variables);
   if (!sql || !q?.datasourceId) {
     return panel.chartType === 'table'
       ? withTableGridHeight(panel, tableRowCount(panel))
@@ -157,14 +166,20 @@ async function hydrateFromSql(panel: PanelConfig): Promise<PanelConfig> {
 /**
  * 为单个面板填充数据（统一走 SQL 数据源）
  */
-export async function hydratePanelOption(panel: PanelConfig): Promise<PanelConfig> {
-  return hydrateFromSql(panel);
+export async function hydratePanelOption(
+  panel: PanelConfig,
+  variables?: Record<string, string>,
+): Promise<PanelConfig> {
+  return hydrateFromSql(panel, variables);
 }
 
 /**
  * 批量填充面板数据
  */
-export async function hydratePanels(panels: PanelConfig[]): Promise<PanelConfig[]> {
+export async function hydratePanels(
+  panels: PanelConfig[],
+  variables?: Record<string, string>,
+): Promise<PanelConfig[]> {
   const sqlPanels = panels.filter((p) => {
     const q = p.query;
     return !!(q?.datasourceId && (q?.sql || (q?.sqlMode === 'builder' && q?.sqlTable)));
@@ -179,7 +194,7 @@ export async function hydratePanels(panels: PanelConfig[]): Promise<PanelConfig[
   );
 
   for (const panel of sqlPanels) {
-    hydrated.push(await hydrateFromSql(panel));
+    hydrated.push(await hydrateFromSql(panel, variables));
   }
 
   // 保持原始顺序
