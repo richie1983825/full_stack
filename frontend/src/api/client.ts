@@ -1,5 +1,6 @@
 import type { ApiResponse } from './types';
 import { ApiError } from './types';
+import { handleSessionExpired } from '../utils/sessionExpired';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api';
 const AUTH_STORAGE_KEY = 'cmp-auth';
@@ -49,6 +50,10 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   }).catch(() => {
     throw new ApiError('NETWORK', '无法连接后端服务', 0);
   });
+
+  if (auth && response.status === 401) {
+    handleSessionExpired();
+  }
 
   const rawBody = await response.text();
   if (!rawBody) {

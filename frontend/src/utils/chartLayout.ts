@@ -1,5 +1,7 @@
 /** ECharts 图例/网格布局：靠右对齐且留出边距，避免窄面板下文字被裁切 */
 
+import { chartPalette } from '../theme/colors';
+
 type LegendConfig = Record<string, unknown>;
 type GridConfig = Record<string, unknown>;
 
@@ -63,6 +65,7 @@ export function normalizeChartOption(userOption: Record<string, unknown>): Recor
   const grid = normalizeGrid(userOption.grid as GridConfig | undefined, legend);
 
   return {
+    color: [...chartPalette],
     ...userOption,
     legend,
     grid,

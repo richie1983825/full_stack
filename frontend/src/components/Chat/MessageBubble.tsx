@@ -1,48 +1,69 @@
+import { useState } from 'react';
 import { Button, Space } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
+import { EditOutlined, PlusOutlined } from '@ant-design/icons';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import type { ChatMessage } from '../../types';
-import type { PanelChartType, PanelConfig } from '../../types/dashboard';
+import type { ChatMessage } from '../../stores/useChatStore';
+import type { PanelConfig } from '../../types/dashboard';
 import { useDashboardStore } from '../../stores/useDashboardStore';
+import { hydratePanelOptionStrict } from '../../utils/panelData';
 import { nextPanelGrid } from '../../utils/panelTemplates';
 import { colorPrimary } from '../../theme/colors';
-
-function toPanelConfig(suggested: {
-  id: string;
-  title: string;
-  chartType: string;
-  option: Record<string, unknown>;
-  grid: PanelConfig['grid'];
-}): PanelConfig | null {
-  const allowed: PanelChartType[] = ['line', 'bar', 'table'];
-  if (!allowed.includes(suggested.chartType as PanelChartType)) return null;
-  return {
-    id: `panel-${Date.now()}`,
-    title: suggested.title,
-    chartType: suggested.chartType as PanelChartType,
-    option: suggested.option,
-    grid: suggested.grid,
-    query: {},
-  };
-}
+import { formatAiChatError } from '../../utils/aiChatError';
 
 interface MessageBubbleProps {
   message: ChatMessage;
+  variables?: Record<string, string>;
+  onEditPanel?: (panel: PanelConfig) => void;
 }
 
-export default function MessageBubble({ message }: MessageBubbleProps) {
-  const addPanel = useDashboardStore((s) => s.addPanel);
-  const isUser = message.role === 'user';
+function toPanelConfig(suggested: PanelConfig, grid: PanelConfig['grid']): PanelConfig {
+  return {
+    ...suggested,
+    id: `panel-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    grid,
+  };
+}
 
-  const handleAddChart = () => {
-    if (!message.suggestedChart) return;
+export default function MessageBubble({ message, variables, onEditPanel }: MessageBubbleProps) {
+  const addPanel = useDashboardStore((s) => s.addPanel);
+  const updatePanel = useDashboardStore((s) => s.updatePanel);
+  const isUser = message.role === 'user';
+  const [adding, setAdding] = useState(false);
+  const [hydrateError, setHydrateError] = useState<string | null>(null);
+  const [lastAddedPanel, setLastAddedPanel] = useState<PanelConfig | null>(null);
+
+  const handleAddChart = async () => {
+    if (!message.suggestedPanel) return;
     const current = useDashboardStore.getState().currentDashboard;
     if (!current) return;
-    const panel = toPanelConfig(message.suggestedChart);
-    if (!panel) return;
-    addPanel({ ...panel, grid: nextPanelGrid(current.panels) });
+
+    setAdding(true);
+    setHydrateError(null);
+    const panel = toPanelConfig(message.suggestedPanel, nextPanelGrid(current.panels));
+    addPanel(panel);
+    setLastAddedPanel(panel);
+
+    try {
+      const hydrated = await hydratePanelOptionStrict(panel, variables);
+      updatePanel(hydrated);
+      setLastAddedPanel(hydrated);
+    } catch (err) {
+      setHydrateError(formatAiChatError(err));
+    } finally {
+      setAdding(false);
+    }
   };
+
+  const handleEdit = () => {
+    const panel = lastAddedPanel ?? message.suggestedPanel;
+    if (panel && onEditPanel) {
+      onEditPanel(toPanelConfig(panel, panel.grid));
+    }
+  };
+
+  const bubbleBg = isUser ? colorPrimary : message.isError ? '#fff2f0' : '#f0f0f0';
+  const bubbleColor = isUser ? '#fff' : message.isError ? '#cf1322' : '#333';
 
   return (
     <div
@@ -58,10 +79,11 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
           maxWidth: '90%',
           padding: '10px 14px',
           borderRadius: 12,
-          background: isUser ? colorPrimary : '#f0f0f0',
-          color: isUser ? '#fff' : '#333',
+          background: bubbleBg,
+          color: bubbleColor,
           fontSize: 14,
           lineHeight: 1.6,
+          border: message.isError ? '1px solid #ffccc7' : undefined,
         }}
       >
         {isUser ? (
@@ -73,17 +95,25 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
         )}
       </div>
 
-      {/* AI 生成图表时显示添加按钮 */}
-      {message.suggestedChart && !isUser && (
-        <Space style={{ marginTop: 8 }}>
+      {message.suggestedPanel && !isUser && !message.isError && (
+        <Space orientation="vertical" size={4} style={{ marginTop: 8, alignItems: 'flex-start' }}>
           <Button
             type="primary"
             size="small"
             icon={<PlusOutlined />}
-            onClick={handleAddChart}
+            onClick={() => void handleAddChart()}
+            loading={adding}
           >
             添加到仪表盘
           </Button>
+          {hydrateError && (
+            <>
+              <span style={{ fontSize: 12, color: '#cf1322' }}>{hydrateError}</span>
+              <Button size="small" icon={<EditOutlined />} onClick={handleEdit}>
+                编辑 SQL
+              </Button>
+            </>
+          )}
         </Space>
       )}
 

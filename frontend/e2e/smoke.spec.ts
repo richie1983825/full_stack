@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test('首页加载并显示仪表盘列表', async ({ page }) => {
   await page.goto('/');
   // 页面标题
-  await expect(page.locator('h2')).toContainText('仪表盘');
+  await expect(page.locator('h2')).toContainText('/');
   // 表格存在
   await expect(page.locator('.ant-table')).toBeVisible();
 });

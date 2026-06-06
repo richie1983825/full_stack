@@ -1,13 +1,11 @@
-import type { MetricFieldMeta } from '../constants/networkMetricSchema';
-import { resolveOrderBy } from '../constants/networkMetricSchema';
+import type { MetricFieldMeta } from '../constants/metricFieldMeta';
+import { resolveOrderBy } from '../constants/metricFieldMeta';
 
-export type NetworkMetricTableRow = Record<string, unknown>;
+export type TableRow = Record<string, unknown>;
 
-export function sortNetworkMetricRows(
-  rows: NetworkMetricTableRow[],
-  orderBy?: string[],
-): NetworkMetricTableRow[] {
+export function sortTableRows(rows: TableRow[], orderBy?: string[]): TableRow[] {
   const sortKeys = resolveOrderBy(orderBy);
+  if (!sortKeys.length) return rows;
 
   return [...rows].sort((a, b) => {
     for (const key of sortKeys) {
@@ -19,10 +17,7 @@ export function sortNetworkMetricRows(
 }
 
 /** 按字段 mergeSame 标记合并单元格（Grafana 风格 field config） */
-export function computeMergeRowSpan(
-  rows: NetworkMetricTableRow[],
-  field: MetricFieldMeta,
-): number[] {
+export function computeMergeRowSpan(rows: TableRow[], field: MetricFieldMeta): number[] {
   const spans = Array.from({ length: rows.length }, () => 1);
   if (!field.mergeSame) return spans;
 

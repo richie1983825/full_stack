@@ -213,7 +213,7 @@ export default function SnapshotDrawer({
       }
       open={open}
       onClose={onClose}
-      width={640}
+      size={640}
       destroyOnHidden
     >
       <Paragraph type="secondary" style={{ marginBottom: 16 }}>
@@ -226,7 +226,7 @@ export default function SnapshotDrawer({
             key: 'create',
             label: '立即快照',
             children: (
-              <Space direction="vertical" style={{ width: '100%' }} size={16}>
+              <Space orientation="vertical" style={{ width: '100%' }} size={16}>
                 <div>
                   <Text type="secondary">快照标题（可选）</Text>
                   <Input

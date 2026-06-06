@@ -1,74 +1,223 @@
-import { useEffect, useState, useCallback } from 'react';
-import { Button, Dropdown, Empty, Input, Modal, Spin, Table, Tag, message } from 'antd';
-import { PlusOutlined, DeleteOutlined, FolderOutlined } from '@ant-design/icons';
+import { useEffect, useState, useCallback, useMemo } from 'react';
+import {
+  Button,
+  Dropdown,
+  Empty,
+  Input,
+  Modal,
+  Spin,
+  Table,
+  Tag,
+  message,
+} from 'antd';
+import {
+  PlusOutlined,
+  DeleteOutlined,
+  FolderOutlined,
+  CaretDownOutlined,
+  CaretUpOutlined,
+} from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { Link } from 'react-router-dom';
 import { useDashboardStore } from '../stores/useDashboardStore';
 import { dashboardApi } from '../api/dashboard';
 import type { DashboardSummary } from '../types/dashboard';
 
+interface FolderCrumb {
+  id: string;
+  title: string;
+}
+
 interface TreeItem extends DashboardSummary {
   children?: TreeItem[];
+}
+
+type FlatRowKind = 'item' | 'empty';
+
+interface FlatRow {
+  key: string;
+  rowKind: FlatRowKind;
+  depth: number;
+  item?: TreeItem;
+  parentFolderId?: string;
+}
+
+/** 文件夹行内：箭头(22) + 间距(4) + 图标(14) + 间距(6) = 名称文字起始位置 */
+const FOLDER_NAME_OFFSET = 46;
+
+function flattenDisplayRows(items: TreeItem[], expandedKeys: string[], depth = 0): FlatRow[] {
+  const rows: FlatRow[] = [];
+  for (const item of items) {
+    rows.push({ key: item.id, rowKind: 'item', depth, item });
+    if (item.kind === 'folder' && expandedKeys.includes(item.id)) {
+      const children = item.children ?? [];
+      if (children.length === 0) {
+        rows.push({
+          key: `${item.id}__empty`,
+          rowKind: 'empty',
+          depth: depth + 1,
+          parentFolderId: item.id,
+        });
+      } else {
+        rows.push(...flattenDisplayRows(children, expandedKeys, depth + 1));
+      }
+    }
+  }
+  return rows;
+}
+
+/** 按层级缩进，使子级名称与同层文件夹名称文字左对齐 */
+function rowContentOffset(depth: number): number {
+  return depth * FOLDER_NAME_OFFSET;
 }
 
 export default function DashboardListPage() {
   const { deleteDashboard } = useDashboardStore();
   const [items, setItems] = useState<TreeItem[]>([]);
+  const [rootFolders, setRootFolders] = useState<DashboardSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [createKind, setCreateKind] = useState<'folder' | 'dashboard'>('dashboard');
+  const [createParentId, setCreateParentId] = useState<string | undefined>(undefined);
   const [title, setTitle] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [folderPath, setFolderPath] = useState<FolderCrumb[]>([]);
   const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
   const [moveOpen, setMoveOpen] = useState(false);
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [renameTitle, setRenameTitle] = useState('');
 
-  const loadTree = useCallback(async () => {
-    setLoading(true);
-    try {
-      const list = await dashboardApi.listTree();
-      setItems(list.map((i) => ({ ...i, children: i.kind === 'folder' ? [] : undefined })));
-    } catch {
-      message.error('加载失败');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void loadTree();
-  }, [loadTree]);
+  const currentFolderId = folderPath.length > 0 ? folderPath[folderPath.length - 1].id : null;
+  const inFolder = folderPath.length > 0;
+  const dashboardsInView = items.filter((i) => i.kind === 'dashboard');
 
   const loadChildren = useCallback(async (parentId: string): Promise<TreeItem[]> => {
     try {
       const list = await dashboardApi.listChildren(parentId);
-      return list.map((i) => ({ ...i, children: i.kind === 'folder' ? [] : undefined }));
+      return list.map((i) => ({
+        ...i,
+        children: i.kind === 'folder' ? [] : undefined,
+      }));
     } catch {
       return [];
     }
   }, []);
 
-  const handleExpand = useCallback(async (expanded: boolean, record: TreeItem) => {
-    if (expanded) {
-      // Load children into the record
-      const children = await loadChildren(record.id);
-      setItems((prev) => updateChildren(prev, record.id, children));
-      setExpandedKeys((prev) => [...prev, record.id]);
-    } else {
-      setExpandedKeys((prev) => prev.filter((k) => k !== record.id));
+  const loadItems = useCallback(async () => {
+    setLoading(true);
+    try {
+      const list = currentFolderId
+        ? await dashboardApi.listChildren(currentFolderId)
+        : await dashboardApi.listTree();
+      setItems(
+        list.map((i) => ({
+          ...i,
+          children: i.kind === 'folder' ? [] : undefined,
+        })),
+      );
+    } catch {
+      message.error('加载失败');
+    } finally {
+      setLoading(false);
     }
-  }, [loadChildren]);
+  }, [currentFolderId]);
+
+  const loadRootFolders = useCallback(async () => {
+    try {
+      const list = await dashboardApi.listTree();
+      setRootFolders(list.filter((i) => i.kind === 'folder'));
+    } catch {
+      setRootFolders([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadItems();
+    setExpandedKeys([]);
+  }, [loadItems]);
+
+  useEffect(() => {
+    void loadRootFolders();
+  }, [loadRootFolders]);
+
+  const enterFolder = (record: DashboardSummary) => {
+    setFolderPath((prev) => [...prev, { id: record.id, title: record.title }]);
+    setSelectedIds([]);
+    setExpandedKeys([]);
+  };
+
+  const goUp = () => {
+    setFolderPath((prev) => prev.slice(0, -1));
+    setSelectedIds([]);
+    setExpandedKeys([]);
+  };
+
+  const toggleFolderExpand = async (record: TreeItem) => {
+    const isExpanded = expandedKeys.includes(record.id);
+    if (isExpanded) {
+      setExpandedKeys((prev) => prev.filter((k) => k !== record.id));
+      return;
+    }
+
+    const children = await loadChildren(record.id);
+    setItems((prev) => updateChildren(prev, record.id, children));
+    setExpandedKeys((prev) => [...prev, record.id]);
+  };
+
+  const openCreate = (kind: 'folder' | 'dashboard', parentId?: string) => {
+    setCreateKind(kind);
+    setCreateParentId(parentId ?? currentFolderId ?? undefined);
+    setCreateOpen(true);
+  };
+
+  const openRename = () => {
+    if (!inFolder) return;
+    setRenameTitle(folderPath[folderPath.length - 1].title);
+    setRenameOpen(true);
+  };
+
+  const handleRename = async () => {
+    if (!currentFolderId) return;
+    const nextTitle = renameTitle.trim();
+    if (!nextTitle) {
+      message.warning('请输入文件夹名称');
+      return;
+    }
+    try {
+      await dashboardApi.update(currentFolderId, { title: nextTitle });
+      setFolderPath((prev) => {
+        const next = [...prev];
+        next[next.length - 1] = { ...next[next.length - 1], title: nextTitle };
+        return next;
+      });
+      setRenameOpen(false);
+      void loadRootFolders();
+      message.success('文件夹名称已更新');
+    } catch (err) {
+      message.error(err instanceof Error ? err.message : '修改失败');
+    }
+  };
 
   const handleCreate = async () => {
     if (!title.trim()) {
       message.warning('请输入名称');
       return;
     }
+    const parentId = createParentId;
     try {
-      await dashboardApi.create({ title: title.trim(), kind: createKind });
+      await dashboardApi.create({
+        title: title.trim(),
+        kind: createKind,
+        parentId,
+      });
       setCreateOpen(false);
       setTitle('');
-      void loadTree();
-      setExpandedKeys([]);
+      void loadItems();
+      void loadRootFolders();
+      if (parentId && expandedKeys.includes(parentId)) {
+        const children = await loadChildren(parentId);
+        setItems((prev) => updateChildren(prev, parentId, children));
+      }
     } catch (err) {
       message.error(err instanceof Error ? err.message : '创建失败');
     }
@@ -86,8 +235,8 @@ export default function DashboardListPage() {
         await Promise.all(selectedIds.map((id) => deleteDashboard(id)));
         message.success(`已删除 ${selectedIds.length} 个项目`);
         setSelectedIds([]);
-        void loadTree();
-        setExpandedKeys([]);
+        void loadItems();
+        void loadRootFolders();
       },
     });
   };
@@ -98,120 +247,229 @@ export default function DashboardListPage() {
     message.success(`已移动 ${selectedIds.length} 个项目`);
     setSelectedIds([]);
     setMoveOpen(false);
-    void loadTree();
-    setExpandedKeys([]);
+    void loadItems();
+    void loadRootFolders();
   };
 
-  const getAllIds = (list: TreeItem[]): string[] => {
-    const ids: string[] = [];
-    for (const item of list) {
-      ids.push(item.id);
-      if (item.children) ids.push(...getAllIds(item.children));
-    }
-    return ids;
-  };
-
-  const columns: ColumnsType<TreeItem> = [
+  const columns: ColumnsType<FlatRow> = [
     {
       title: '名称',
       dataIndex: 'title',
-      render: (title: string, record) => (
-        <>
-          {record.kind === 'folder' ? (
-            <span
-              style={{ cursor: 'pointer', fontWeight: 500 }}
-              onClick={() => {
-                if (expandedKeys.includes(record.id)) {
-                  setExpandedKeys((prev) => prev.filter((k) => k !== record.id));
-                } else {
-                  if (!record.children || record.children.length === 0) {
-                    void handleExpand(true, record);
-                  } else {
-                    setExpandedKeys((prev) => [...prev, record.id]);
-                  }
-                }
-              }}
+      render: (_name, row) => {
+        if (row.rowKind === 'empty') {
+          return (
+            <div
+              className="dashboard-folder-inline-empty"
+              style={{ paddingLeft: rowContentOffset(row.depth) }}
             >
-              <FolderOutlined style={{ marginRight: 6, color: '#faad14' }} />
-              {title}
+              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="此文件夹暂无仪表盘">
+                <Button
+                  type="primary"
+                  size="small"
+                  icon={<PlusOutlined />}
+                  onClick={() => openCreate('dashboard', row.parentFolderId)}
+                >
+                  新建仪表盘
+                </Button>
+              </Empty>
+            </div>
+          );
+        }
+
+        const record = row.item!;
+        const name = record.title;
+        const offset = rowContentOffset(row.depth);
+
+        if (record.kind === 'folder') {
+          return (
+            <span className="dashboard-folder-row" style={{ paddingLeft: offset }}>
+              <button
+                type="button"
+                className="dashboard-folder-arrow-btn"
+                aria-label={expandedKeys.includes(record.id) ? '收起' : '展开'}
+                aria-expanded={expandedKeys.includes(record.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  void toggleFolderExpand(record);
+                }}
+              >
+                {expandedKeys.includes(record.id) ? (
+                  <CaretUpOutlined />
+                ) : (
+                  <CaretDownOutlined />
+                )}
+              </button>
+              <button
+                type="button"
+                className="dashboard-folder-name-btn"
+                onClick={() => enterFolder(record)}
+              >
+                <FolderOutlined className="dashboard-folder-icon" />
+                <span>{name}</span>
+              </button>
             </span>
-          ) : (
-            <Link to={`/dashboards/${record.id}`}>{title}</Link>
-          )}
-        </>
-      ),
+          );
+        }
+
+        return (
+          <span className="dashboard-item-name" style={{ paddingLeft: offset }}>
+            <Link to={`/dashboards/${record.id}`}>{name}</Link>
+          </span>
+        );
+      },
     },
     {
       title: '创建人',
       width: 100,
-      render: (_, r) => (r.kind === 'folder' ? null : '—'),
+      render: (_, row) => (row.rowKind === 'item' && row.item?.kind === 'dashboard' ? '—' : null),
     },
     {
       title: '所属团队',
       width: 120,
-      render: (_, r) => (r.kind === 'folder' ? null : '—'),
+      render: (_, row) => (row.rowKind === 'item' && row.item?.kind === 'dashboard' ? '—' : null),
     },
     {
       title: '定时快照',
       width: 100,
-      render: (_, r) => (r.kind === 'folder' ? null : <Tag>未开启</Tag>),
+      render: (_, row) =>
+        row.rowKind === 'item' && row.item?.kind === 'dashboard' ? <Tag>未开启</Tag> : null,
     },
     {
       title: '最近快照时间',
       width: 180,
-      render: (_, r) => (r.kind === 'folder' ? null : '—'),
+      render: (_, row) => (row.rowKind === 'item' && row.item?.kind === 'dashboard' ? '—' : null),
     },
   ];
+
+  const displayRows = useMemo(
+    () => flattenDisplayRows(items, expandedKeys),
+    [items, expandedKeys],
+  );
+
+  const pathTitle = useMemo(
+    () => (folderPath.length > 0 ? `/${folderPath.map((f) => f.title).join('/')}` : '/'),
+    [folderPath],
+  );
+
+  const showEmptyFolderHint = inFolder && !loading && dashboardsInView.length === 0 && items.length > 0;
 
   return (
     <div className="page-container">
       <div className="admin-page-header">
-        <h2>仪表盘</h2>
-        <Dropdown
-          menu={{
-            items: [
-              { key: 'dashboard', label: '新建仪表盘', onClick: () => { setCreateKind('dashboard'); setCreateOpen(true); } },
-              { key: 'folder', label: '新建文件夹', onClick: () => { setCreateKind('folder'); setCreateOpen(true); } },
-            ],
-          }}
-        >
-          <Button type="primary" icon={<PlusOutlined />}>
-            新建
-          </Button>
-        </Dropdown>
+        <div className="dashboard-page-title">
+          <h2>{pathTitle}</h2>
+        </div>
+        <div className="admin-page-header-actions">
+          {inFolder && (
+            <Button onClick={goUp}>返回上一层</Button>
+          )}
+          {inFolder && (
+            <Button onClick={openRename}>重命名文件夹</Button>
+          )}
+          <Dropdown
+            menu={{
+              items: [
+                {
+                  key: 'dashboard',
+                  label: '新建仪表盘',
+                  onClick: () => openCreate('dashboard'),
+                },
+                {
+                  key: 'folder',
+                  label: '新建文件夹',
+                  onClick: () => openCreate('folder'),
+                },
+              ],
+            }}
+          >
+            <Button type="primary" icon={<PlusOutlined />}>
+              新建
+            </Button>
+          </Dropdown>
+        </div>
       </div>
 
       {selectedIds.length > 0 && (
         <div className="selection-bar">
-          <span>已选择 <strong>{selectedIds.length}</strong> 个项目</span>
-          <Button danger icon={<DeleteOutlined />} onClick={handleBatchDelete}>删除</Button>
+          <span>
+            已选择 <strong>{selectedIds.length}</strong> 个项目
+          </span>
+          <Button danger icon={<DeleteOutlined />} onClick={handleBatchDelete}>
+            删除
+          </Button>
           <Button onClick={() => setMoveOpen(true)}>移动</Button>
         </div>
       )}
 
-      {loading && items.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: 80 }}><Spin size="large" /></div>
-      ) : items.length === 0 ? (
+      {loading && items.length === 0 && !inFolder ? (
+        <div style={{ textAlign: 'center', padding: 80 }}>
+          <Spin size="large" />
+        </div>
+      ) : !inFolder && items.length === 0 ? (
         <Empty description="暂无仪表盘或文件夹" />
       ) : (
-        <Table
-          rowKey="id"
-          loading={loading}
-          columns={columns}
-          dataSource={items}
-          rowSelection={{
-            selectedRowKeys: selectedIds,
-            onChange: (keys) => setSelectedIds(keys as string[]),
-          }}
-          expandable={{
-            expandedRowKeys: expandedKeys,
-            rowExpandable: (r) => r.kind === 'folder',
-            onExpand: (expanded, record) => void handleExpand(expanded, record),
-            expandIcon: () => null,
-          }}
-          pagination={{ pageSize: 50, hideOnSinglePage: true }}
-        />
+        <>
+          <Table
+            className="dashboard-list-table"
+            rowKey="key"
+            loading={loading}
+            columns={columns}
+            dataSource={displayRows}
+            rowSelection={{
+              selectedRowKeys: selectedIds,
+              onChange: (keys) => setSelectedIds(keys as string[]),
+              getCheckboxProps: (row) => ({
+                disabled: row.rowKind === 'empty',
+                style: row.rowKind === 'empty' ? { display: 'none' } : undefined,
+              }),
+            }}
+            onRow={(row) =>
+              row.rowKind === 'empty' ? { className: 'dashboard-list-empty-row' } : {}
+            }
+            pagination={{ pageSize: 50, hideOnSinglePage: true }}
+          />
+          {inFolder && !loading && items.length === 0 && (
+            <Empty
+              className="dashboard-folder-empty-hint"
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description="此文件夹暂无内容"
+            >
+              <Button type="primary" icon={<PlusOutlined />} onClick={() => openCreate('dashboard')}>
+                新建仪表盘
+              </Button>
+            </Empty>
+          )}
+          {showEmptyFolderHint && (
+            <Empty
+              className="dashboard-folder-empty-hint"
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description="此文件夹暂无仪表盘"
+            >
+              <Button type="primary" icon={<PlusOutlined />} onClick={() => openCreate('dashboard')}>
+                新建仪表盘
+              </Button>
+            </Empty>
+          )}
+        </>
       )}
+
+      <Modal
+        title="修改文件夹名称"
+        open={renameOpen}
+        onCancel={() => setRenameOpen(false)}
+        onOk={() => void handleRename()}
+        okText="保存"
+        cancelText="取消"
+        destroyOnClose
+      >
+        <Input
+          placeholder="文件夹名称"
+          value={renameTitle}
+          onChange={(e) => setRenameTitle(e.target.value)}
+          onPressEnter={() => void handleRename()}
+          autoFocus
+        />
+      </Modal>
 
       <Modal
         title={createKind === 'folder' ? '新建文件夹' : '新建仪表盘'}
@@ -229,12 +487,7 @@ export default function DashboardListPage() {
         />
       </Modal>
 
-      <Modal
-        title="移动到"
-        open={moveOpen}
-        onCancel={() => setMoveOpen(false)}
-        footer={null}
-      >
+      <Modal title="移动到" open={moveOpen} onCancel={() => setMoveOpen(false)} footer={null}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div
             style={{ padding: '8px 12px', cursor: 'pointer', borderRadius: 4, background: '#f0f0f0' }}
@@ -242,14 +495,18 @@ export default function DashboardListPage() {
           >
             <FolderOutlined style={{ marginRight: 6 }} /> 根目录
           </div>
-          {items
-            .filter((i) => i.kind === 'folder' && !selectedIds.includes(i.id))
+          {rootFolders
+            .filter((f) => !selectedIds.includes(f.id))
             .map((f) => (
               <div
                 key={f.id}
                 style={{ padding: '8px 12px', cursor: 'pointer', borderRadius: 4 }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = '#e6f4ff')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = '')}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#e6f4ff';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = '';
+                }}
                 onClick={() => void handleBatchMove(f.id)}
               >
                 <FolderOutlined style={{ marginRight: 6, color: '#faad14' }} /> {f.title}
@@ -261,7 +518,6 @@ export default function DashboardListPage() {
   );
 }
 
-/** 递归更新 items 树中指定节点的 children */
 function updateChildren(items: TreeItem[], parentId: string, children: TreeItem[]): TreeItem[] {
   return items.map((item) => {
     if (item.id === parentId) {

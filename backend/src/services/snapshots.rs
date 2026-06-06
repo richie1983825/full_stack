@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use chrono::{Duration, Utc};
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder, Set,
@@ -13,8 +11,6 @@ use crate::models::{
     CreateSnapshotRequest, ScheduleDto, SnapshotDto, UpsertScheduleRequest,
 };
 use crate::services::auth::AuthError;
-use crate::services::metrics;
-use crate::services::panel_hydrate::{hydrate_panels_for_snapshot, resolve_snapshot_date};
 use crate::services::snapshot_html::render_snapshot_html;
 
 fn new_snapshot_key() -> String {
@@ -23,12 +19,6 @@ fn new_snapshot_key() -> String {
 
 fn snapshot_view_url(cfg: &Config, key: &str) -> String {
     format!("{}/snapshots/{}", cfg.public_base_url.trim_end_matches('/'), key)
-}
-
-fn ensure_snapshot_dir(cfg: &Config) -> Result<PathBuf, AuthError> {
-    let dir = PathBuf::from(&cfg.snapshot_dir);
-    std::fs::create_dir_all(&dir).map_err(|e| AuthError::Internal(e.to_string()))?;
-    Ok(dir)
 }
 
 pub async fn create_snapshot(
@@ -51,16 +41,8 @@ pub async fn create_snapshot(
         obj.insert("date".into(), json!(date));
     }
 
-    // 网络指标数据
-    let metrics = metrics::query_network_metrics(db, &date)
-        .await
-        .map_err(|e| AuthError::Internal(e.to_string()))?;
-
-    // 先为 network_metrics 面板水合数据
-    let mut panels = hydrate_panels_for_snapshot(&dashboard.panels, &metrics);
-
-    // 再为 SQL 数据源面板水合数据
-    panels = hydrate_sql_panels_for_snapshot(db, cfg, &panels, &variables).await?;
+    // SQL 数据源面板水合
+    let panels = hydrate_sql_panels_for_snapshot(db, cfg, &dashboard.panels, &variables).await?;
     let generated_at = Utc::now().format("%Y-%m-%d %H:%M:%S UTC").to_string();
     let snapshot_title = req
         .title
@@ -70,10 +52,6 @@ pub async fn create_snapshot(
     let html = render_snapshot_html(&snapshot_title, &variables, &panels, &generated_at);
 
     let key = new_snapshot_key();
-    let dir = ensure_snapshot_dir(cfg)?;
-    let file_name = format!("{key}.html");
-    let html_path = dir.join(&file_name);
-    std::fs::write(&html_path, html).map_err(|e| AuthError::Internal(e.to_string()))?;
 
     let now = Utc::now().fixed_offset();
     let expires_at = req.expires_hours.map(|hours| now + Duration::hours(hours));
@@ -86,7 +64,7 @@ pub async fn create_snapshot(
         title: Set(snapshot_title.clone()),
         variables: Set(variables.clone()),
         panels: Set(panels),
-        html_path: Set(html_path.to_string_lossy().into_owned()),
+        html_content: Set(html),
         created_by: Set(created_by),
         created_at: Set(now),
         expires_at: Set(expires_at),
@@ -127,7 +105,11 @@ pub async fn read_snapshot_html(
         }
     }
 
-    std::fs::read_to_string(&row.html_path).map_err(|_| AuthError::NotFound)
+    if row.html_content.is_empty() {
+        return Err(AuthError::NotFound);
+    }
+
+    Ok(row.html_content)
 }
 
 pub async fn delete_snapshot(
@@ -135,15 +117,11 @@ pub async fn delete_snapshot(
     dashboard_id: Uuid,
     snapshot_id: Uuid,
 ) -> Result<(), AuthError> {
-    let row = dashboard_snapshots::Entity::find_by_id(snapshot_id)
+    dashboard_snapshots::Entity::find_by_id(snapshot_id)
         .filter(dashboard_snapshots::Column::DashboardId.eq(dashboard_id))
         .one(db)
         .await?
         .ok_or(AuthError::NotFound)?;
-
-    if !row.html_path.is_empty() {
-        let _ = std::fs::remove_file(&row.html_path);
-    }
 
     dashboard_snapshots::Entity::delete_by_id(snapshot_id)
         .exec(db)
@@ -485,9 +463,8 @@ fn cron_next(expr: &str, from: chrono::DateTime<chrono::FixedOffset>) -> Option<
     use std::str::FromStr;
 
     let schedule = Schedule::from_str(expr).ok()?;
-    // cron crate uses Utc by default; convert our FixedOffset to Utc
     let from_utc = from.with_timezone(&chrono::Utc);
-    let next_utc = schedule.upcoming(chrono::Utc).next()?;
+    let next_utc = schedule.after(&from_utc).next()?;
     // Preserve offset from original time
     let offset = from.offset();
     Some(next_utc.with_timezone(&chrono::FixedOffset::east_opt(offset.local_minus_utc())?))
@@ -502,6 +479,22 @@ fn to_schedule_dto(model: dashboard_schedules::Model) -> ScheduleDto {
         date_mode: model.date_mode,
         last_run_at: model.last_run_at.map(|t| t.to_rfc3339()),
         next_run_at: model.next_run_at.map(|t| t.to_rfc3339()),
+    }
+}
+
+pub fn resolve_snapshot_date(variables: &Value, date_mode: &str) -> String {
+    use chrono::{Duration, Local};
+
+    match date_mode {
+        "today" => Local::now().date_naive().format("%Y-%m-%d").to_string(),
+        "yesterday" => (Local::now().date_naive() - Duration::days(1))
+            .format("%Y-%m-%d")
+            .to_string(),
+        _ => variables
+            .get("date")
+            .and_then(|v| v.as_str())
+            .unwrap_or("2026-05-13")
+            .to_string(),
     }
 }
 

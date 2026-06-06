@@ -12,6 +12,7 @@ PG_CONTAINER="postgres-cmp"
 PORT=3101
 PID_FILE="$SCRIPT_DIR/.backend.pid"
 LOG_FILE="$SCRIPT_DIR/backend.log"
+HEALTH_URL="http://127.0.0.1:$PORT/health"
 
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; BLUE='\033[0;34m'; NC='\033[0m'
 log_info()  { echo -e "${GREEN}[INFO]${NC}  $1"; }
@@ -33,18 +34,22 @@ ensure_cargo_watch() {
     log_info "cargo-watch 安装完成"
 }
 
+health_check() {
+    curl -sf --max-time 2 "$HEALTH_URL" >/dev/null 2>&1
+}
+
 wait_for_backend() {
+    local pid="${1:-}"
     local max_attempts=120
     local attempt=0
+    log_step "等待 Backend 响应 $HEALTH_URL..."
     while [ "$attempt" -lt "$max_attempts" ]; do
-        if curl -sf "http://127.0.0.1:$PORT/health" >/dev/null 2>&1; then
+        if health_check; then
             return 0
         fi
-        if [ "$BACKGROUND" = true ] && [ -f "$PID_FILE" ]; then
-            if ! kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
-                log_error "cargo-watch 进程已退出，查看日志: $LOG_FILE"
-                return 1
-            fi
+        if [ "$BACKGROUND" = true ] && [ -n "$pid" ] && ! kill -0 "$pid" 2>/dev/null; then
+            log_error "cargo-watch 进程已退出，查看日志: $LOG_FILE"
+            return 1
         fi
         attempt=$((attempt + 1))
         sleep 1
@@ -107,7 +112,7 @@ if [ "$BACKGROUND" = true ]; then
         --exec run \
         > "$LOG_FILE" 2>&1 &
     echo $! > "$PID_FILE"
-    if ! wait_for_backend; then
+    if ! wait_for_backend "$(cat "$PID_FILE")"; then
         rm -f "$PID_FILE"
         exit 1
     fi

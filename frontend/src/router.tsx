@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import AuthBootstrap from './components/AuthBootstrap';
 import BackendGate from './components/BackendGate';
+import SessionExpiredRedirect from './components/SessionExpiredRedirect';
 import GrafanaLayout, { GuestRoute, ProtectedRoute } from './layouts/GrafanaLayout';
 import DashboardListPage from './pages/DashboardListPage';
 import DashboardEditorPage from './pages/DashboardEditorPage';
@@ -21,6 +22,7 @@ export default function AppRouter() {
     <BackendGate>
       <AuthBootstrap>
         <BrowserRouter>
+          <SessionExpiredRedirect />
       <Routes>
         <Route element={<GuestRoute />}>
           <Route path="/login" element={<LoginPage />} />

@@ -1,9 +1,9 @@
+pub mod ai_chat;
 pub mod auth;
 pub mod dashboards;
 pub mod datasources;
-pub mod metric_schema;
+pub mod deepseek;
 pub mod metrics;
-pub mod panel_hydrate;
 pub mod roles;
 pub mod snapshot_html;
 pub mod snapshots;

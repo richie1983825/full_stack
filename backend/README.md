@@ -154,10 +154,9 @@ backend/
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| `GET` | `/health` | 健康检查 |
+| `GET` | `/health` | 健康检查（K8s 探针由部署层实现） |
 | `GET` | `/snapshots/{key}` | 快照 HTML 视图 |
-| `POST` | `/api/v1/ops_dbapi/api/network_metrics` | 网络指标 (legacy) |
-| `POST` | `/api/v1/ops_dbapi/api/business_systems` | 业务系统 (legacy) |
+| `POST` | `/api/v1/ops_dbapi/api/business_systems` | 业务系统模板 (legacy) |
 
 ## 数据源密码加密
 
@@ -187,6 +186,27 @@ SERVER_PORT=3101
 JWT_SECRET=cmp-dev-secret-change-in-production
 JWT_EXPIRES_HOURS=24
 PUBLIC_BASE_URL=http://localhost:3100
+RUST_LOG=info,cmp_backend=info,actix_web=info,sqlx=warn,sea_orm=warn
+SQLX_LOG=false
+```
+
+## 日志
+
+使用 **`log` + `env_logger`**，HTTP 访问日志由 Actix `Logger` 中间件输出。
+
+| 变量 | 默认值 | 说明 |
+|------|--------|------|
+| `RUST_LOG` | `info,cmp_backend=info,actix_web=info,sqlx=warn,sea_orm=warn` | 分级过滤，见 [env_logger](https://docs.rs/env_logger/) |
+| `SQLX_LOG` | `false` | 设为 `true` 时打印 SQL 语句（排查数据问题时开启） |
+
+示例：
+
+```bash
+# 只看本服务 debug，仍不打印 SQL
+RUST_LOG=cmp_backend=debug ./target/debug/cmp-backend
+
+# 临时打开 SQL 日志
+SQLX_LOG=true RUST_LOG=sqlx=debug,sea_orm=debug ./target/debug/cmp-backend
 ```
 
 ## 启动
@@ -196,4 +216,5 @@ cd backend
 ./dev.sh            # cargo-watch 热重载
 ./start.sh          # 启动 + PostgreSQL 容器
 ./stop.sh           # 停止
+./status.sh         # 检查是否在运行
 ```

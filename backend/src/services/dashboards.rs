@@ -2,7 +2,7 @@ use chrono::Utc;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder, Set,
 };
-use serde_json::{json, Value};
+use serde_json::json;
 use uuid::Uuid;
 
 use crate::entity::dashboards;

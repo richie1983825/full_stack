@@ -62,8 +62,9 @@ export default function PanelCard({ panel, onDelete, onEdit }: PanelCardProps) {
       styles={{
         body: {
           flex: 1,
+          minHeight: 0,
           padding: '8px 12px 8px 8px',
-          overflow: 'visible',
+          overflow: 'hidden',
         },
         header: { minHeight: 38, padding: '0 12px' },
       }}

@@ -1,16 +1,16 @@
 import ReactECharts from 'echarts-for-react';
 import type { ColumnsType } from 'antd/es/table';
-import type { MetricFieldMeta } from '../../constants/networkMetricSchema';
+import type { MetricFieldMeta } from '../../constants/metricFieldMeta';
 import type { PanelConfig } from '../../types/dashboard';
 import { Table, Tag } from 'antd';
 import {
   computeMergeRowSpan,
   formatMetricChange,
-  sortNetworkMetricRows,
-  type NetworkMetricTableRow,
-} from '../../utils/networkMetricTable';
+  sortTableRows,
+  type TableRow,
+} from '../../utils/tableData';
 import { normalizeChartOption } from '../../utils/chartLayout';
-import { defaultTableFieldMeta } from '../../constants/networkMetricSchema';
+import { resolveTableFields } from '../../constants/metricFieldMeta';
 
 interface ChartRendererProps {
   config: PanelConfig;
@@ -26,8 +26,8 @@ function changeTagColor(value: unknown): 'red' | 'green' | 'default' {
 
 function buildColumns(
   fields: MetricFieldMeta[],
-  data: NetworkMetricTableRow[],
-): ColumnsType<NetworkMetricTableRow> {
+  data: TableRow[],
+): ColumnsType<TableRow> {
   const mergeSpans = new Map<string, number[]>();
   for (const field of fields) {
     if (field.mergeSame) {
@@ -47,14 +47,14 @@ function buildColumns(
       return {
         ...base,
         width: 120,
-        onCell: (_: NetworkMetricTableRow, index?: number) => ({
+        onCell: (_: TableRow, index?: number) => ({
           rowSpan: spans[index ?? 0] ?? 1,
           style: { verticalAlign: 'middle' },
         }),
       };
     }
 
-    if (field.name === 'metric_name') {
+    if (field.name === 'metric_name' || field.name === 'metrics') {
       return { ...base, ellipsis: true };
     }
 
@@ -76,14 +76,14 @@ export default function ChartRenderer({ config }: ChartRendererProps) {
   if (config.chartType === 'table') {
     const tableOption = config.option as {
       fields?: MetricFieldMeta[];
-      data?: NetworkMetricTableRow[];
+      data?: TableRow[];
       orderBy?: string[];
     };
-    const fields = tableOption.fields?.length ? tableOption.fields : defaultTableFieldMeta();
     const rawData = tableOption.data ?? [];
+    const fields = resolveTableFields(tableOption.fields, rawData);
     if (!rawData.length) return <div style={{ padding: 24, color: '#999' }}>暂无数据</div>;
 
-    const data = sortNetworkMetricRows(rawData, tableOption.orderBy);
+    const data = sortTableRows(rawData, tableOption.orderBy);
     const columns = buildColumns(fields, data);
 
     const pagination =
@@ -96,7 +96,7 @@ export default function ChartRenderer({ config }: ChartRendererProps) {
         className="panel-table"
         dataSource={data}
         columns={columns}
-        rowKey={(_, i) => String(i)}
+        rowKey={(record) => JSON.stringify(record)}
         size="small"
         pagination={pagination}
         scroll={{ x: 'max-content' }}

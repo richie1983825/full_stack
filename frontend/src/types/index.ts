@@ -94,6 +94,19 @@ export interface UpdateDataSourcePayload {
   password?: string;
 }
 
+/** 数据库表元数据（含 PostgreSQL COMMENT） */
+export interface TableMeta {
+  name: string;
+  comment?: string;
+}
+
+/** 数据库列元数据（含 PostgreSQL COMMENT） */
+export interface ColumnMeta {
+  name: string;
+  dataType: string;
+  comment?: string;
+}
+
 export interface DataField {
   name: string;
   type: 'string' | 'number' | 'date' | 'boolean';

@@ -7,9 +7,10 @@ pub struct Config {
     pub server_port: u16,
     pub jwt_secret: String,
     pub jwt_expires_hours: i64,
-    pub snapshot_dir: String,
     pub public_base_url: String,
     pub deepseek_api_key: Option<String>,
+    /// 是否打印 SQL 语句（调试时可设 SQLX_LOG=true）
+    pub sqlx_log: bool,
 }
 
 impl Config {
@@ -45,10 +46,9 @@ impl Config {
                 .unwrap_or_else(|_| "24".into())
                 .parse()
                 .expect("JWT_EXPIRES_HOURS must be a valid i64"),
-            snapshot_dir: env::var("SNAPSHOT_DIR")
-                .unwrap_or_else(|_| "./data/snapshots".into()),
             public_base_url,
             deepseek_api_key,
+            sqlx_log: crate::logging::parse_bool_env("SQLX_LOG", false),
         }
     }
 }

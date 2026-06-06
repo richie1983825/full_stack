@@ -13,6 +13,8 @@ import {
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { datasourceApi } from '../api/datasource';
+import DatasourceSchemaPanel from '../components/DataSource/DatasourceSchemaPanel';
+import TableExpandArrow from '../components/TableExpandArrow';
 import DbTypeIcon from '../components/Charts/DbTypeIcon';
 import type {
   CreateDataSourcePayload,
@@ -173,6 +175,11 @@ export default function DataSourcePage() {
           onChange: (keys) => setSelectedIds(keys as string[]),
         }}
         pagination={{ pageSize: 20, hideOnSinglePage: true }}
+        expandable={{
+          expandIcon: (props) => <TableExpandArrow {...props} />,
+          expandedRowRender: (record) => <DatasourceSchemaPanel datasourceId={record.id} />,
+          rowExpandable: () => true,
+        }}
       />
 
       <Modal
@@ -183,7 +190,7 @@ export default function DataSourcePage() {
         okText="保存"
         cancelText="取消"
         width={560}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={form} layout="vertical">
           <Form.Item name="name" label="名称" rules={[{ required: true, message: '请输入名称' }]}>

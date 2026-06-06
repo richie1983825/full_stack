@@ -7,26 +7,49 @@ const CARD_HEADER = 38;
 const CARD_BODY_PADDING = 16;
 const TABLE_HEADER = 39;
 const TABLE_ROW = 39;
+const TABLE_PAGINATION = 48;
 
-/** 根据表格行数计算 react-grid-layout 所需的最小 h 值 */
-export function computeTableGridHeight(rowCount: number): number {
+/** 表格实际展示行数（开启分页时按 pageSize 计算） */
+export function effectiveTableRowCount(panel: PanelConfig): number {
+  const data = (panel.option as { data?: unknown[] } | undefined)?.data;
+  const total = Array.isArray(data) ? data.length : 0;
+  if (panel.pagination?.enabled) {
+    const pageSize = panel.pagination.pageSize ?? 10;
+    return Math.min(pageSize, Math.max(total, 1));
+  }
+  return Math.max(total, 1);
+}
+
+/** 根据表格行数计算 react-grid-layout 所需 h 值 */
+export function computeTableGridHeight(
+  rowCount: number,
+  paginationEnabled = false,
+): number {
   const contentPx =
-    CARD_HEADER + CARD_BODY_PADDING + TABLE_HEADER + Math.max(rowCount, 1) * TABLE_ROW;
+    CARD_HEADER +
+    CARD_BODY_PADDING +
+    TABLE_HEADER +
+    Math.max(rowCount, 1) * TABLE_ROW +
+    (paginationEnabled ? TABLE_PAGINATION : 0);
   const h = Math.ceil((contentPx + GRID_MARGIN) / (GRID_ROW_HEIGHT + GRID_MARGIN));
   return Math.max(h, 2);
 }
 
-function withTableGridHeight(panel: PanelConfig, rowCount: number): PanelConfig {
-  if (panel.chartType !== 'table') return panel;
-  return {
-    ...panel,
-    grid: { ...panel.grid, h: computeTableGridHeight(rowCount) },
-  };
+export function getTablePanelGridH(panel: PanelConfig): number {
+  return computeTableGridHeight(
+    effectiveTableRowCount(panel),
+    panel.pagination?.enabled ?? false,
+  );
 }
 
-function tableRowCount(panel: PanelConfig): number {
-  const data = (panel.option as { data?: unknown[] } | undefined)?.data;
-  return Array.isArray(data) ? data.length : 0;
+function withTableGridHeight(panel: PanelConfig, rowCount?: number): PanelConfig {
+  if (panel.chartType !== 'table') return panel;
+  const rows = rowCount ?? effectiveTableRowCount(panel);
+  const h = computeTableGridHeight(rows, panel.pagination?.enabled ?? false);
+  return {
+    ...panel,
+    grid: { ...panel.grid, h },
+  };
 }
 
 // ============ SQL 查询结果 → ECharts option ============
@@ -111,12 +134,19 @@ import { resolveSql } from './resolveSql';
 /**
  * 使用 SQL 数据源查询为面板填充数据
  */
-async function hydrateFromSql(panel: PanelConfig, variables?: Record<string, string>): Promise<PanelConfig> {
+async function hydrateFromSql(
+  panel: PanelConfig,
+  variables?: Record<string, string>,
+  strict = false,
+): Promise<PanelConfig> {
   const q = panel.query;
   const sql = resolveSql(q, variables);
   if (!sql || !q?.datasourceId) {
+    if (strict && q?.datasourceId) {
+      throw new Error('SQL 为空，无法查询数据');
+    }
     return panel.chartType === 'table'
-      ? withTableGridHeight(panel, tableRowCount(panel))
+      ? withTableGridHeight(panel)
       : panel;
   }
 
@@ -124,10 +154,13 @@ async function hydrateFromSql(panel: PanelConfig, variables?: Record<string, str
     const result = await datasourceApi.query(q.datasourceId, sql);
     const option = buildChartFromSqlResult(result.rows, result.fields, panel.chartType);
     if (panel.chartType === 'table') {
-      return withTableGridHeight({ ...panel, option }, result.rows.length);
+      return withTableGridHeight({ ...panel, option });
     }
     return { ...panel, option };
-  } catch {
+  } catch (err) {
+    if (strict) {
+      throw err instanceof Error ? err : new Error('SQL 查询失败');
+    }
     return { ...panel, option: {} };
   }
 }
@@ -141,7 +174,15 @@ export async function hydratePanelOption(
   panel: PanelConfig,
   variables?: Record<string, string>,
 ): Promise<PanelConfig> {
-  return hydrateFromSql(panel, variables);
+  return hydrateFromSql(panel, variables, false);
+}
+
+/** 严格模式：查询失败时抛出错误（AI 添加面板时使用） */
+export async function hydratePanelOptionStrict(
+  panel: PanelConfig,
+  variables?: Record<string, string>,
+): Promise<PanelConfig> {
+  return hydrateFromSql(panel, variables, true);
 }
 
 /**
@@ -161,7 +202,7 @@ export async function hydratePanels(
   });
 
   const hydrated: PanelConfig[] = staticPanels.map((panel) =>
-    panel.chartType === 'table' ? withTableGridHeight(panel, tableRowCount(panel)) : panel,
+    panel.chartType === 'table' ? withTableGridHeight(panel) : panel,
   );
 
   for (const panel of sqlPanels) {

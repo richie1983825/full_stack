@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { authApi, type UserProfile } from '../api/auth';
-import { ApiError } from '../api/types';
 
 interface AuthStore {
   token: string | null;
@@ -42,11 +41,8 @@ export const useAuthStore = create<AuthStore>()(
         try {
           const user = await authApi.me();
           set({ user, loading: false });
-        } catch (error) {
+        } catch {
           set({ loading: false });
-          if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
-            set({ token: null, user: null });
-          }
         }
       },
 

@@ -4,25 +4,34 @@ import { useChatStore } from '../../stores/useChatStore';
 import ChatPanel from './ChatPanel';
 
 interface ChatSidebarProps {
-  /** 展开后以浮动对话框形式展示，而非贴边全高侧栏 */
+  /** 编辑模式：折叠条嵌入布局，展开后全高浮层覆盖右侧 */
   floating?: boolean;
+  dashboardId: string;
+  variables?: Record<string, string>;
+  onEditPanel?: (panel: import('../../types/dashboard').PanelConfig) => void;
 }
 
-export default function ChatSidebar({ floating = false }: ChatSidebarProps) {
+export default function ChatSidebar({ floating = false, dashboardId, variables, onEditPanel }: ChatSidebarProps) {
   const { chatOpen, openChat, closeChat } = useChatStore();
+
+  const rail = (
+    <button
+      type="button"
+      className={`chat-sidebar-rail${floating ? ' chat-sidebar-rail--inline' : ''}`}
+      aria-label="展开 AI 助手"
+      onClick={openChat}
+    >
+      <MessageOutlined className="chat-sidebar-rail-icon" />
+      <span className="chat-sidebar-rail-label">用 AI 搭建报表</span>
+    </button>
+  );
 
   return (
     <>
-      {!chatOpen && (
-        <button
-          type="button"
-          className="chat-sidebar-rail"
-          aria-label="展开 AI 对话"
-          onClick={openChat}
-        >
-          <MessageOutlined className="chat-sidebar-rail-icon" />
-          <span className="chat-sidebar-rail-label">AI 对话</span>
-        </button>
+      {floating ? (
+        <div className="chat-sidebar-slot">{!chatOpen && rail}</div>
+      ) : (
+        !chatOpen && rail
       )}
 
       {chatOpen && (
@@ -45,11 +54,9 @@ export default function ChatSidebar({ floating = false }: ChatSidebarProps) {
                 icon={<CloseOutlined />}
                 aria-label="关闭"
                 onClick={closeChat}
-              >
-                关闭
-              </Button>
+              />
             </div>
-            <ChatPanel />
+            <ChatPanel dashboardId={dashboardId} variables={variables} onEditPanel={onEditPanel} />
           </aside>
         </>
       )}

@@ -4,7 +4,7 @@ import { ConfigProvider } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
 import App from './App';
 import './index.css';
-import { colorPrimary, brand } from './theme/colors';
+import { colorPrimary, brand, navBackground, colorPrimaryBg } from './theme/colors';
 
 async function enableMockBackend() {
   const useMock = import.meta.env.DEV
@@ -30,7 +30,18 @@ async function bootstrap() {
             colorPrimary,
             colorLink: colorPrimary,
             colorInfo: brand[400],
+            colorPrimaryBg,
             borderRadius: 6,
+          },
+          components: {
+            Layout: {
+              headerBg: navBackground,
+              siderBg: navBackground,
+            },
+            Menu: {
+              darkItemBg: navBackground,
+              darkSubMenuItemBg: brand[700],
+            },
           },
         }}
       >

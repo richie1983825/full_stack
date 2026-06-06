@@ -74,8 +74,8 @@ if [ -n "$DASH_ID" ]; then
   check "默认仪表盘含 3 个组件" "$([ "$PANELS" = "3" ] && echo 1 || echo 0)"
 fi
 
-METRICS_CODE=$(curl -s -o /dev/null -w '%{http_code}' "$API/api/v1/ops_dbapi/api/network_metrics" -X POST -H 'Content-Type: application/json' -d '{"params":{"date":"2026-05-13"}}' || true)
-check "POST network_metrics = 200" "$([ "$METRICS_CODE" = "200" ] && echo 1 || echo 0)"
+METRICS_CODE=$(curl -s -o /dev/null -w '%{http_code}' "$API/api/datasources" -H "Authorization: Bearer $TOKEN" || true)
+check "GET /api/datasources = 200" "$([ "$METRICS_CODE" = "200" ] && echo 1 || echo 0)"
 
 PROXY_CODE=$(curl -s -o /dev/null -w '%{http_code}' "$WEB/api/auth/login" -X POST -H 'Content-Type: application/json' -d '{"username":"admin","password":"admin123"}' || true)
 check "Frontend 代理 /api/auth/login = 200" "$([ "$PROXY_CODE" = "200" ] && echo 1 || echo 0)"

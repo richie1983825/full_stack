@@ -10,8 +10,18 @@ html, body, #root {
   -webkit-font-smoothing: antialiased;
 }
 
-/* ===== Ant Design Pro 风格色阶 ===== */
+/* ===== 品牌色阶（与 theme/colors.ts 保持一致） ===== */
 :root {
+  --brand-900: #0a1628;
+  --brand-800: #0f2847;
+  --brand-700: #163656;
+  --brand-600: #1d4570;
+  --brand-500: #2563ab;
+  --brand-400: #4a82c4;
+  --brand-300: #7aa8d9;
+  --brand-100: #e2ecf6;
+  --brand-50: #f0f6fc;
+
   --bg-base: #f0f2f5;
   --bg-container: #fff;
   --border-light: #f0f0f0;
@@ -19,8 +29,10 @@ html, body, #root {
   --text-primary: rgba(0, 0, 0, 0.88);
   --text-secondary: rgba(0, 0, 0, 0.65);
   --text-tertiary: rgba(0, 0, 0, 0.45);
-  --color-primary: #1677ff;
-  --color-primary-bg: #e6f4ff;
+  --color-primary: var(--brand-500);
+  --color-primary-bg: var(--brand-50);
+  --nav-bg: var(--brand-800);
+  --nav-accent: var(--brand-400);
   --color-success: #52c41a;
   --color-warning: #faad14;
   --color-error: #ff4d4f;
@@ -46,7 +58,7 @@ html, body, #root {
   height: var(--header-height);
   line-height: var(--header-height);
   padding: 0;
-  background: #001529 !important;
+  background: var(--nav-bg) !important;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
 }
 
@@ -100,7 +112,7 @@ html, body, #root {
 
 .grafana-top-menu .ant-menu-item-selected::after,
 .grafana-top-menu .ant-menu-submenu-selected::after {
-  border-bottom-color: #1677ff !important;
+  border-bottom-color: var(--nav-accent) !important;
 }
 
 .grafana-top-menu a { color: inherit; text-decoration: none; }
@@ -162,6 +174,111 @@ html, body, #root {
   margin: 0;
 }
 
+.dashboard-page-title {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.admin-page-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dashboard-folder-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dashboard-folder-arrow-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--text-secondary);
+  border-radius: 4px;
+}
+
+.dashboard-folder-arrow-btn:hover {
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
+}
+
+.table-expand-arrow-placeholder {
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+}
+
+.ant-table-row-expand-icon-cell .dashboard-folder-arrow-btn {
+  vertical-align: middle;
+}
+
+.dashboard-folder-name-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: inherit;
+  line-height: inherit;
+  font-weight: 500;
+  color: inherit;
+}
+
+.dashboard-folder-name-btn:hover {
+  color: var(--color-primary);
+}
+
+.dashboard-folder-icon {
+  color: #faad14;
+}
+
+.dashboard-folder-inline-empty {
+  margin: 4px 0;
+  padding: 8px 0;
+}
+
+.dashboard-list-table .dashboard-list-empty-row > td {
+  border-bottom: none;
+  padding-top: 0;
+  padding-bottom: 12px;
+}
+
+.dashboard-list-table .dashboard-list-empty-row:hover > td {
+  background: transparent !important;
+}
+
+.dashboard-item-name {
+  display: inline-block;
+}
+
+.dashboard-folder-empty-hint {
+  margin-top: 16px;
+  padding: 24px 0;
+  background: var(--bg-base);
+  border-radius: 8px;
+}
+
+.datasource-schema-panel {
+  padding: 8px 0 4px;
+  background: var(--bg-base);
+  border-radius: 6px;
+}
+
+.datasource-schema-panel .ant-table {
+  background: transparent;
+}
+
 /* ===== Pro 风格表格 ===== */
 .ant-table-wrapper {
   background: transparent;
@@ -202,6 +319,20 @@ html, body, #root {
   margin: calc(-1 * var(--content-padding));
 }
 
+.dashboard-editor-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  align-items: flex-start;
+}
+
+.dashboard-editor-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .dashboard-editor-toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -221,7 +352,6 @@ html, body, #root {
 }
 
 .dashboard-container {
-  flex: 1;
   padding: 24px;
 }
 
@@ -232,7 +362,7 @@ html, body, #root {
 
 /* ===== 仪表盘网格 ===== */
 .dashboard-grid {
-  min-height: 600px;
+  position: relative;
 }
 
 .dashboard-grid .echarts-for-react {
@@ -241,6 +371,11 @@ html, body, #root {
 
 .dashboard-grid .react-grid-item {
   transition: box-shadow 0.15s ease;
+  overflow: hidden;
+}
+
+.dashboard-grid .react-grid-item > div {
+  height: 100%;
 }
 
 .dashboard-grid .react-grid-item:hover {
@@ -248,9 +383,13 @@ html, body, #root {
 }
 
 /* ===== 表格面板 ===== */
+.panel-card-table .ant-card-body {
+  min-height: 0;
+  overflow: auto;
+}
+
 .panel-table .ant-table-body {
-  overflow: visible !important;
-  max-height: none !important;
+  overflow: auto !important;
 }
 
 /* ===== 登录页 ===== */
@@ -286,9 +425,6 @@ html, body, #root {
 }
 
 /* ===== 仪表盘列表表格 ===== */
-.panel-card-table .ant-card-body {
-  overflow: visible;
-}
 
 /* ===== AI 对话侧边栏 ===== */
 .chat-sidebar-rail {
@@ -304,16 +440,48 @@ html, body, #root {
   width: 48px;
   height: calc(100vh - var(--header-height));
   padding: 16px 0;
+  border: none;
   border-left: 1px solid var(--border-light);
   background: var(--bg-container);
   color: var(--color-primary);
   cursor: pointer;
   transition: background 0.2s;
+  appearance: none;
 }
 
 .chat-sidebar-rail:hover { background: var(--color-primary-bg); }
 .chat-sidebar-rail-icon { font-size: 18px; }
-.chat-sidebar-rail-label { writing-mode: vertical-rl; font-size: 13px; letter-spacing: 2px; }
+.chat-sidebar-rail-label {
+  writing-mode: vertical-rl;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  line-height: 1.4;
+}
+
+/* 编辑模式：右侧占位，展开时保持宽度避免布局抖动 */
+.chat-sidebar-slot {
+  flex-shrink: 0;
+  width: 52px;
+  align-self: flex-start;
+  position: sticky;
+  top: var(--header-height);
+  height: calc(100vh - var(--header-height));
+}
+
+/* 编辑模式：折叠条占布局宽度，sticky 贴视口右侧，不遮挡组件 */
+.chat-sidebar-rail--inline {
+  position: sticky;
+  top: var(--header-height);
+  right: auto;
+  z-index: auto;
+  flex-shrink: 0;
+  align-self: flex-start;
+  height: calc(100vh - var(--header-height));
+  width: 52px;
+  border: none;
+  border-left: 1px solid var(--border-light);
+}
 
 .chat-sidebar-backdrop {
   position: fixed;
@@ -338,13 +506,14 @@ html, body, #root {
 }
 
 .chat-sidebar-panel--float {
-  top: auto;
-  right: 64px;
-  bottom: 24px;
-  height: min(640px, calc(100vh - var(--header-height) - 48px));
-  border: 1px solid var(--border-light);
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  top: var(--header-height);
+  right: 0;
+  bottom: 0;
+  height: auto;
+  border: none;
+  border-left: 1px solid var(--border-light);
+  border-radius: 0;
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.12);
 }
 
 .chat-sidebar-header {
@@ -361,14 +530,18 @@ html, body, #root {
 .chat-sidebar-close { flex-shrink: 0; }
 .chat-sidebar-panel .chat-panel-body { flex: 1; min-height: 0; }
 
+.chat-context-bar {
+  flex-shrink: 0;
+  padding: 12px;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--bg-base);
+}
+
 @media (max-width: 480px) {
   .chat-sidebar-panel { left: 0; width: auto; }
   .chat-sidebar-panel--float {
-    right: 12px;
-    left: 12px;
+    left: 0;
     width: auto;
-    bottom: 12px;
-    height: min(560px, calc(100vh - var(--header-height) - 24px));
   }
 }
 

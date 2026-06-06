@@ -1,7 +1,6 @@
 /** 后端 API 路径（不含 base URL） */
 export const endpoints = {
-  // ====== 容量管理平台 ======
-  networkMetrics: '/v1/ops_dbapi/api/network_metrics',
+  // ====== 容量管理平台（遗留） ======
   businessSystems: '/v1/ops_dbapi/api/business_systems',
 
   // ====== 认证 ======
@@ -34,5 +33,4 @@ export const endpoints = {
   datasourceTables: (id: string) => `/datasources/${id}/tables`,
   datasourceColumns: (id: string, table: string) =>
     `/datasources/${id}/tables/${table}/columns`,
-  chat: '/chat',
 } as const;

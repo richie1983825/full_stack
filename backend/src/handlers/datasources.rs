@@ -4,8 +4,7 @@ use uuid::Uuid;
 use crate::app_middleware::auth::get_user_id;
 use crate::handlers::AppState;
 use crate::models::{
-    ApiResponse, CreateDatasourceRequest, DatasourceQueryResult, DatasourceResponse,
-    UpdateDatasourceRequest,
+    ApiResponse, CreateDatasourceRequest, UpdateDatasourceRequest,
 };
 use crate::services::{auth, datasources};
 

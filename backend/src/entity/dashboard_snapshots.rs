@@ -14,7 +14,8 @@ pub struct Model {
     pub variables: Json,
     #[sea_orm(column_type = "JsonBinary")]
     pub panels: Json,
-    pub html_path: String,
+    #[sea_orm(column_type = "Text")]
+    pub html_content: String,
     pub created_by: Option<Uuid>,
     pub created_at: DateTimeWithTimeZone,
     pub expires_at: Option<DateTimeWithTimeZone>,

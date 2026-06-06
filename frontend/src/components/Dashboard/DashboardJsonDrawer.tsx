@@ -59,7 +59,7 @@ export default function DashboardJsonDrawer() {
       title="JSON 配置"
       open={jsonDrawerOpen}
       onClose={() => setJsonDrawerOpen(false)}
-      width={560}
+      size={560}
       extra={
         <Space>
           <Button onClick={() => setJsonDrawerOpen(false)}>取消</Button>

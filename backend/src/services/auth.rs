@@ -187,7 +187,6 @@ pub enum AuthError {
     NotFound,
     TokenError(String),
     Forbidden,
-    Validation(String),
     Internal(String),
     Db(sea_orm::DbErr),
 }
@@ -206,7 +205,6 @@ impl std::fmt::Display for AuthError {
             Self::NotFound => write!(f, "user not found"),
             Self::TokenError(msg) => write!(f, "token error: {msg}"),
             Self::Forbidden => write!(f, "permission denied"),
-            Self::Validation(msg) => write!(f, "{msg}"),
             Self::Internal(msg) => write!(f, "internal error: {msg}"),
             Self::Db(err) => write!(f, "database error: {err}"),
         }

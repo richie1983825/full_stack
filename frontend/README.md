@@ -67,7 +67,7 @@ frontend/
 │   │   ├── services/index.ts        # Mock 后端逻辑
 │   │   └── data/sampleData.ts       # 示例数据
 │   └── constants/
-│       └── networkMetricsQuery.ts   # 默认 SQL 查询
+│       └── defaultPanelQuery.ts   # 默认 SQL 查询
 ├── .env.development                 # 开发环境变量
 ├── vite.config.ts                   # Vite 配置 + API 代理
 └── package.json

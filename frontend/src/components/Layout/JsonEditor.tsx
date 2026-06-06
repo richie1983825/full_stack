@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState, useCallback } from 'react';
+import { colorPrimary } from '../../theme/colors';
 
 interface JsonEditorProps {
   value: string;
@@ -110,7 +111,7 @@ export default function JsonEditor({ value, onChange, rows = 20, readOnly, style
     <div
       style={{
         position: 'relative',
-        border: `1px solid ${valid ? (focused ? '#1677ff' : '#d9d9d9') : '#ff4d4f'}`,
+        border: `1px solid ${valid ? (focused ? colorPrimary : '#d9d9d9') : '#ff4d4f'}`,
         borderRadius: 6,
         transition: 'border-color 0.2s',
         height: rows * LINE_HEIGHT + PADDING * 2,

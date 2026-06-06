@@ -1,9 +1,10 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { GridLayout, useContainerWidth } from 'react-grid-layout';
 import type { Layout } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 import { Empty } from 'antd';
 import type { PanelConfig } from '../../types/dashboard';
+import { getTablePanelGridH } from '../../utils/panelData';
 import PanelCard from './PanelCard';
 
 interface DashboardGridProps {
@@ -27,7 +28,8 @@ export default function DashboardGrid({
       const updatedPanels = panels.map((panel) => {
         const item = layout.find((l) => l.i === panel.id);
         if (item) {
-          return { ...panel, grid: { x: item.x, y: item.y, w: item.w, h: item.h } };
+          const h = panel.chartType === 'table' ? getTablePanelGridH(panel) : item.h;
+          return { ...panel, grid: { x: item.x, y: item.y, w: item.w, h } };
         }
         return panel;
       });
@@ -35,6 +37,22 @@ export default function DashboardGrid({
     },
     [editMode, onPanelsChange, panels],
   );
+
+  // 表格面板高度随数据/分页配置同步到 store（避免持久化过大的 h）
+  const needsTableHeightSync = panels.some(
+    (panel) => panel.chartType === 'table' && panel.grid.h !== getTablePanelGridH(panel),
+  );
+
+  useEffect(() => {
+    if (!needsTableHeightSync) return;
+    const updated = panels.map((panel) => {
+      if (panel.chartType !== 'table') return panel;
+      const h = getTablePanelGridH(panel);
+      if (panel.grid.h === h) return panel;
+      return { ...panel, grid: { ...panel.grid, h } };
+    });
+    onPanelsChange(updated);
+  }, [needsTableHeightSync, panels, onPanelsChange]);
 
   const handleDeletePanel = useCallback(
     (id: string) => {
@@ -51,10 +69,14 @@ export default function DashboardGrid({
     );
   }
 
-  const layout: Layout = panels.map((p) => ({
-    i: p.id,
-    ...p.grid,
-  }));
+  const layout: Layout = panels.map((p) => {
+    const base = { i: p.id, ...p.grid };
+    if (p.chartType === 'table') {
+      const h = getTablePanelGridH(p);
+      return { ...base, h, minH: h, maxH: h, resizeHandles: ['e'] as const };
+    }
+    return base;
+  });
 
   return (
     <div ref={containerRef} className="dashboard-container">

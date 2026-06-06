@@ -1,5 +1,5 @@
 import type { PanelChartType, PanelConfig } from '../types/dashboard';
-import { defaultNetworkMetricsQuery } from '../constants/networkMetricsQuery';
+import { defaultPanelQuery } from '../constants/defaultPanelQuery';
 import { colorPrimary } from '../theme/colors';
 
 export function createPanelId() {
@@ -22,13 +22,13 @@ export function createDefaultPanel(
     title: titles[chartType],
     chartType,
     grid,
-    query: defaultNetworkMetricsQuery(chartType),
+    query: defaultPanelQuery(chartType),
     option: {},
   };
 
   if (chartType === 'table') {
     base.option = {
-      data: [{ 节点类型: '示例', 指标名称: '示例', 当前值: '0', 单位: '%' }],
+      data: [{ 列1: '示例', 列2: '示例', 列3: '0' }],
     };
   } else if (chartType === 'bar') {
     base.option = {

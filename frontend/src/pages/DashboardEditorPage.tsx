@@ -7,7 +7,6 @@ import {
   Modal,
   Space,
   Spin,
-  Switch,
   message,
 } from 'antd';
 import type { MenuProps } from 'antd';
@@ -100,6 +99,11 @@ export default function DashboardEditorPage() {
     }
   };
 
+  const handleEnterEdit = () => {
+    window.history.replaceState(null, '', `?edit=true`);
+    setEditMode(true);
+  };
+
   const handleCancel = () => {
     if (dirty) {
       Modal.confirm({
@@ -147,14 +151,16 @@ export default function DashboardEditorPage() {
   if (loading || !currentDashboard) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', padding: 120 }}>
-        <Spin size="large" tip="加载仪表盘..." />
+        <Spin size="large" description="加载仪表盘..." />
       </div>
     );
   }
 
   return (
     <div className="dashboard-editor-page">
-      <div className="dashboard-editor-toolbar">
+      <div className={`dashboard-editor-body${editMode ? ' dashboard-editor-body--with-chat' : ''}`}>
+        <div className="dashboard-editor-main">
+          <div className="dashboard-editor-toolbar">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
           <Space wrap>
             {editMode ? (
@@ -171,21 +177,9 @@ export default function DashboardEditorPage() {
             ) : (
               <h2 style={{ margin: 0 }}>{currentDashboard.title}</h2>
             )}
-            <span className="toolbar-label">
-              <Switch
-                checked={editMode}
-                onChange={(checked) => {
-                  if (checked) {
-                    window.history.replaceState(null, '', `?edit=true`);
-                  } else {
-                    window.history.replaceState(null, '', window.location.pathname);
-                  }
-                  setEditMode(checked);
-                }}
-                size="small"
-              />
-              <span style={{ marginLeft: 6 }}>编辑模式</span>
-            </span>
+            {!editMode && (
+              <Button onClick={handleEnterEdit}>编辑</Button>
+            )}
             <DatePicker
               value={dayjs(currentDashboard.variables?.date ?? defaultDate)}
               onChange={(value) => {
@@ -239,6 +233,17 @@ export default function DashboardEditorPage() {
         onPanelsChange={setPanels}
         onEditPanel={editMode ? setEditingPanel : undefined}
       />
+        </div>
+
+        {editMode && id && (
+          <ChatSidebar
+            floating
+            dashboardId={id}
+            variables={effectiveVariables}
+            onEditPanel={setEditingPanel}
+          />
+        )}
+      </div>
 
       <PanelEditorModal
         open={!!editingPanel}
@@ -256,8 +261,6 @@ export default function DashboardEditorPage() {
         dashboardTitle={currentDashboard.title}
         onClose={() => setSnapshotOpen(false)}
       />
-
-      {editMode && <ChatSidebar floating />}
     </div>
   );
 }

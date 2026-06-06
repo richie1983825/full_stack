@@ -369,91 +369,12 @@ fn url_decode(s: &str) -> Result<String, String> {
 
 // ====== Schema discovery ======
 
-/// 列出数据源中 public schema 的所有表
-pub async fn list_tables(
-    db: &sea_orm::DatabaseConnection,
-    cfg: &Config,
-    id: Uuid,
-) -> Result<Vec<String>, String> {
-    use sqlx::Row;
-    use std::time::Duration;
-
-    let model = datasources::Entity::find_by_id(id)
-        .one(db)
-        .await
-        .map_err(|e| format!("db: {e}"))?
-        .ok_or_else(|| "datasource not found".to_string())?;
-
-    let password = decrypt_password(&model.password, cfg)?;
-    let conn_str = format!(
-        "postgres://{}:{}@{}:{}/{}",
-        model.username, password, model.host, model.port, model.database
-    );
-
-    let pool = sqlx::postgres::PgPoolOptions::new()
-        .max_connections(1)
-        .acquire_timeout(Duration::from_secs(5))
-        .connect(&conn_str)
-        .await
-        .map_err(|e| format!("connection failed: {e}"))?;
-
-    let rows = sqlx::query(
-        "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name",
-    )
-    .fetch_all(&pool)
-    .await
-    .map_err(|e| format!("query failed: {e}"))?;
-
-    let tables: Vec<String> = rows.iter().map(|r| r.get::<String, _>(0)).collect();
-    Ok(tables)
-}
-
-/// 列出指定表的列名和类型
-pub async fn list_columns(
-    db: &sea_orm::DatabaseConnection,
-    cfg: &Config,
-    id: Uuid,
-    table: &str,
-) -> Result<Vec<ColumnInfo>, String> {
-    use sqlx::Row;
-    use std::time::Duration;
-
-    let model = datasources::Entity::find_by_id(id)
-        .one(db)
-        .await
-        .map_err(|e| format!("db: {e}"))?
-        .ok_or_else(|| "datasource not found".to_string())?;
-
-    let password = decrypt_password(&model.password, cfg)?;
-    let conn_str = format!(
-        "postgres://{}:{}@{}:{}/{}",
-        model.username, password, model.host, model.port, model.database
-    );
-
-    let pool = sqlx::postgres::PgPoolOptions::new()
-        .max_connections(1)
-        .acquire_timeout(Duration::from_secs(5))
-        .connect(&conn_str)
-        .await
-        .map_err(|e| format!("connection failed: {e}"))?;
-
-    let rows = sqlx::query(
-        "SELECT column_name, data_type FROM information_schema.columns WHERE table_schema = 'public' AND table_name = $1 ORDER BY ordinal_position",
-    )
-    .bind(table)
-    .fetch_all(&pool)
-    .await
-    .map_err(|e| format!("query failed: {e}"))?;
-
-    let columns: Vec<ColumnInfo> = rows
-        .iter()
-        .map(|r| ColumnInfo {
-            name: r.get::<String, _>(0),
-            data_type: r.get::<String, _>(1),
-        })
-        .collect();
-
-    Ok(columns)
+#[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TableInfo {
+    pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub comment: Option<String>,
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -461,6 +382,116 @@ pub struct ColumnInfo {
     pub name: String,
     #[serde(rename = "dataType")]
     pub data_type: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub comment: Option<String>,
+}
+
+async fn pg_pool_for(model: &datasources::Model, cfg: &Config) -> Result<sqlx::PgPool, String> {
+    use std::time::Duration;
+
+    let password = decrypt_password(&model.password, cfg)?;
+    let conn_str = format!(
+        "postgres://{}:{}@{}:{}/{}",
+        model.username, password, model.host, model.port, model.database
+    );
+
+    sqlx::postgres::PgPoolOptions::new()
+        .max_connections(1)
+        .acquire_timeout(Duration::from_secs(5))
+        .connect(&conn_str)
+        .await
+        .map_err(|e| format!("connection failed: {e}"))
+}
+
+fn normalize_pg_comment(raw: Option<String>) -> Option<String> {
+    raw.map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+}
+
+/// 列出数据源中 public schema 的所有表（含 PostgreSQL 表注释）
+pub async fn list_tables(
+    db: &sea_orm::DatabaseConnection,
+    cfg: &Config,
+    id: Uuid,
+) -> Result<Vec<TableInfo>, String> {
+    use sqlx::Row;
+
+    let model = datasources::Entity::find_by_id(id)
+        .one(db)
+        .await
+        .map_err(|e| format!("db: {e}"))?
+        .ok_or_else(|| "datasource not found".to_string())?;
+
+    let pool = pg_pool_for(&model, cfg).await?;
+
+    let rows = sqlx::query(
+        r#"
+        SELECT c.relname AS table_name,
+               obj_description(c.oid, 'pg_class') AS comment
+        FROM pg_class c
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE n.nspname = 'public' AND c.relkind = 'r'
+        ORDER BY c.relname
+        "#,
+    )
+    .fetch_all(&pool)
+    .await
+    .map_err(|e| format!("query failed: {e}"))?;
+
+    Ok(rows
+        .iter()
+        .map(|r| TableInfo {
+            name: r.get::<String, _>(0),
+            comment: normalize_pg_comment(r.get::<Option<String>, _>(1)),
+        })
+        .collect())
+}
+
+/// 列出指定表的列名、类型及 PostgreSQL 列注释
+pub async fn list_columns(
+    db: &sea_orm::DatabaseConnection,
+    cfg: &Config,
+    id: Uuid,
+    table: &str,
+) -> Result<Vec<ColumnInfo>, String> {
+    use sqlx::Row;
+
+    let model = datasources::Entity::find_by_id(id)
+        .one(db)
+        .await
+        .map_err(|e| format!("db: {e}"))?
+        .ok_or_else(|| "datasource not found".to_string())?;
+
+    let pool = pg_pool_for(&model, cfg).await?;
+
+    let rows = sqlx::query(
+        r#"
+        SELECT a.attname AS column_name,
+               format_type(a.atttypid, a.atttypmod) AS data_type,
+               col_description(a.attrelid, a.attnum) AS comment
+        FROM pg_attribute a
+        JOIN pg_class c ON c.oid = a.attrelid
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE n.nspname = 'public'
+          AND c.relname = $1
+          AND a.attnum > 0
+          AND NOT a.attisdropped
+        ORDER BY a.attnum
+        "#,
+    )
+    .bind(table)
+    .fetch_all(&pool)
+    .await
+    .map_err(|e| format!("query failed: {e}"))?;
+
+    Ok(rows
+        .iter()
+        .map(|r| ColumnInfo {
+            name: r.get::<String, _>(0),
+            data_type: r.get::<String, _>(1),
+            comment: normalize_pg_comment(r.get::<Option<String>, _>(2)),
+        })
+        .collect())
 }
 
 impl From<datasources::Model> for DatasourceResponse {

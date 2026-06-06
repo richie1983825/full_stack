@@ -1,13 +1,9 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Form, Input, Select, Tabs, Space, Button, Modal, message } from 'antd';
-import type { DataSource, DataSourceQueryResult } from '../../types';
+import type { DataSource, DataSourceQueryResult, ColumnMeta, TableMeta } from '../../types';
 import type { SqlMode } from '../../types/dashboard';
 import { datasourceApi } from '../../api/datasource';
-
-interface ColumnMeta {
-  name: string;
-  dataType: string;
-}
+import { columnDisplayLabel, tableDisplayLabel, tableSearchText, columnSearchText } from '../../utils/schemaLabel';
 
 interface SqlQueryEditorProps {
   datasourceId?: string;
@@ -43,7 +39,7 @@ export default function SqlQueryEditor({
 }: SqlQueryEditorProps) {
   const [dataSources, setDataSources] = useState<DataSource[]>([]);
   const [dsLoading, setDsLoading] = useState(false);
-  const [tables, setTables] = useState<string[]>([]);
+  const [tables, setTables] = useState<TableMeta[]>([]);
   const [tablesLoading, setTablesLoading] = useState(false);
   const [columns, setColumns] = useState<ColumnMeta[]>([]);
   const [columnsLoading, setColumnsLoading] = useState(false);
@@ -223,7 +219,11 @@ export default function SqlQueryEditor({
                       setResultColumns([]);
                       onChange({ datasourceId, sql, sqlMode: 'builder', sqlTable: val, sqlColumns: undefined, sqlWhere, sqlOrderBy });
                     }}
-                    options={tables.map((t) => ({ label: t, value: t }))}
+                    options={tables.map((t) => ({
+                      label: tableDisplayLabel(t),
+                      value: t.name,
+                      title: tableSearchText(t),
+                    }))}
                     notFoundContent={tablesLoading ? '加载中...' : '无表'}
                   />
                 </Form.Item>
@@ -240,8 +240,9 @@ export default function SqlQueryEditor({
                       onChange({ datasourceId, sql, sqlMode: 'builder', sqlTable, sqlColumns: vals, sqlWhere, sqlOrderBy })
                     }
                     options={(resultColumns.length > 0 ? resultColumns : columns).map((c) => ({
-                      label: `${c.name}  (${c.dataType})`,
+                      label: columnDisplayLabel(c),
                       value: c.name,
+                      title: columnSearchText(c),
                     }))}
                     notFoundContent={sqlTable ? (columnsLoading ? '加载中...' : '执行预览以获取输出列') : '请先选择表'}
                   />

@@ -1,7 +1,6 @@
 use serde_json::Value;
 
 use crate::models::MetricFieldMeta;
-use crate::services::metric_schema::{default_table_field_meta, format_metric_change};
 
 pub fn render_snapshot_html(
     title: &str,
@@ -144,7 +143,7 @@ fn render_table_html(panel: &Value) -> String {
         return r#"<p style="color:#999;padding:16px;">暂无数据</p>"#.into();
     }
 
-    let fields = parse_table_fields(option);
+    let fields = parse_table_fields(option, rows);
     let merge_field = fields.iter().find(|field| field.merge_same == Some(true));
 
     let mut html = String::from("<table><thead><tr>");
@@ -182,8 +181,8 @@ fn render_table_html(panel: &Value) -> String {
     html
 }
 
-fn parse_table_fields(option: Option<&Value>) -> Vec<MetricFieldMeta> {
-    option
+fn parse_table_fields(option: Option<&Value>, rows: &[Value]) -> Vec<MetricFieldMeta> {
+    if let Some(parsed) = option
         .and_then(|o| o.get("fields"))
         .and_then(|f| f.as_array())
         .map(|arr| {
@@ -204,10 +203,40 @@ fn parse_table_fields(option: Option<&Value>) -> Vec<MetricFieldMeta> {
                             .map(String::from),
                     })
                 })
+                .collect::<Vec<_>>()
+        })
+        .filter(|items| !items.is_empty())
+    {
+        return parsed;
+    }
+
+    rows.first()
+        .and_then(|row| row.as_object())
+        .map(|obj| {
+            obj.keys()
+                .map(|name| MetricFieldMeta {
+                    name: name.clone(),
+                    label: name.clone(),
+                    field_type: "string".into(),
+                    merge_same: None,
+                    format: None,
+                })
                 .collect()
         })
-        .filter(|items: &Vec<MetricFieldMeta>| !items.is_empty())
-        .unwrap_or_else(default_table_field_meta)
+        .unwrap_or_default()
+}
+
+fn format_metric_change(value: &str) -> String {
+    if value.is_empty() || value == "-" {
+        return "-".into();
+    }
+    if let Ok(parsed) = value.parse::<f64>() {
+        if parsed > 0.0 {
+            return format!("+{parsed}%");
+        }
+        return format!("{parsed}%");
+    }
+    value.to_string()
 }
 
 fn compute_merge_row_spans(rows: &[Value], field_name: &str) -> Vec<usize> {

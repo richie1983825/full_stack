@@ -1,9 +1,12 @@
 import { apiClient } from './client';
 import { endpoints } from './endpoints';
+import { normalizeColumnMetaList, normalizeTableMetaList } from '../utils/schemaLabel';
 import type {
   CreateDataSourcePayload,
+  ColumnMeta,
   DataSource,
   DataSourceQueryResult,
+  TableMeta,
   UpdateDataSourcePayload,
 } from '../types';
 
@@ -25,13 +28,15 @@ export const datasourceApi = {
   query: (id: string, sql: string) =>
     apiClient.post<DataSourceQueryResult>(endpoints.datasourceQuery(id), { sql }),
 
-  /** Schema 探索：列出所有表 */
-  listTables: (id: string) =>
-    apiClient.get<string[]>(endpoints.datasourceTables(id)),
+  /** Schema 探索：列出所有表（含 COMMENT） */
+  listTables: async (id: string) => {
+    const raw = await apiClient.get<TableMeta[] | string[]>(endpoints.datasourceTables(id));
+    return normalizeTableMetaList(raw);
+  },
 
-  /** Schema 探索：列出指定表的列 */
-  listColumns: (id: string, table: string) =>
-    apiClient.get<{ name: string; dataType: string }[]>(
-      endpoints.datasourceColumns(id, table),
-    ),
+  /** Schema 探索：列出指定表的列（含 COMMENT） */
+  listColumns: async (id: string, table: string) => {
+    const raw = await apiClient.get<ColumnMeta[]>(endpoints.datasourceColumns(id, table));
+    return normalizeColumnMetaList(raw);
+  },
 };

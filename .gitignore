@@ -6,3 +6,4 @@ target/
 .DS_Store
 data/snapshots/
 backend/secrets/deepseek.toml
+*.tsbuildinfo

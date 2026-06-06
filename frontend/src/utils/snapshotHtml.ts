@@ -1,12 +1,12 @@
 import type { PanelConfig } from '../types/dashboard';
-import type { MetricFieldMeta } from '../constants/networkMetricSchema';
-import { defaultTableFieldMeta } from '../constants/networkMetricSchema';
+import type { MetricFieldMeta } from '../constants/metricFieldMeta';
+import { resolveTableFields } from '../constants/metricFieldMeta';
 import {
   computeMergeRowSpan,
   formatMetricChange,
-  sortNetworkMetricRows,
-  type NetworkMetricTableRow,
-} from './networkMetricTable';
+  sortTableRows,
+  type TableRow,
+} from './tableData';
 import { normalizeChartOption } from './chartLayout';
 
 export function renderSnapshotHtml(
@@ -27,11 +27,12 @@ export function renderSnapshotHtml(
     if (panel.chartType === 'table') {
       const tableOption = panel.option as {
         fields?: MetricFieldMeta[];
-        data?: NetworkMetricTableRow[];
+        data?: TableRow[];
         orderBy?: string[];
       };
-      const fields = tableOption.fields?.length ? tableOption.fields : defaultTableFieldMeta();
-      const data = sortNetworkMetricRows(tableOption.data ?? [], tableOption.orderBy);
+      const rawData = tableOption.data ?? [];
+      const fields = resolveTableFields(tableOption.fields, rawData);
+      const data = sortTableRows(rawData, tableOption.orderBy);
       const mergeField = fields.find((field) => field.mergeSame);
       const mergeSpans = mergeField ? computeMergeRowSpan(data, mergeField) : [];
 

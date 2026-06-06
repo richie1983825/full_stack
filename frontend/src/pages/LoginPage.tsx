@@ -21,7 +21,10 @@ export default function LoginPage() {
     return <Navigate to={homePath} replace />;
   }
 
-  const from = (location.state as { from?: string } | null)?.from;
+  const from = (location.state as { from?: string; expired?: boolean } | null)?.from;
+  const sessionExpired =
+    (location.state as { expired?: boolean } | null)?.expired === true
+    || new URLSearchParams(location.search).get('expired') === '1';
 
   const onFinish = async (values: { username: string; password: string }) => {
     setLoading(true);
@@ -47,6 +50,15 @@ export default function LoginPage() {
           登录 CMP
         </Title>
         <Text type="secondary">容量管理平台 · 统一监控与管理</Text>
+
+        {sessionExpired && (
+          <Alert
+            type="warning"
+            message="登录已过期，请重新登录"
+            showIcon
+            style={{ marginTop: 16 }}
+          />
+        )}
 
         {error && (
           <Alert type="error" message={error} showIcon style={{ marginTop: 16 }} />

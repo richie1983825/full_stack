@@ -1,3 +1,4 @@
+mod logging;
 mod config;
 mod crypto;
 mod db;
@@ -10,9 +11,10 @@ mod secrets;
 mod services;
 
 use actix_cors::Cors;
-use actix_web::{web, App, HttpResponse, HttpServer};
+use actix_web::{web, App, HttpServer};
 use actix_web::middleware::Logger;
 use handlers::AppState;
+use jsonwebtoken::crypto::rust_crypto::DEFAULT_PROVIDER;
 use log::info;
 use app_middleware::auth::AuthMiddleware;
 
@@ -20,12 +22,14 @@ use app_middleware::auth::AuthMiddleware;
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenv::dotenv().ok();
-    env_logger::init_from_env(env_logger::Env::default().default_filter_or("info"));
+    logging::init();
+    // jsonwebtoken 10 需在首次 JWT 操作前安装 crypto provider
+    let _ = DEFAULT_PROVIDER.install_default();
 
     let cfg = config::Config::from_env();
     info!("Starting server at {}:{}", cfg.server_host, cfg.server_port);
 
-    let db = db::create_connection(&cfg.database_url)
+    let db = db::create_connection(&cfg.database_url, cfg.sqlx_log)
         .await
         .expect("Failed to create database connection");
 
@@ -71,16 +75,10 @@ async fn main() -> std::io::Result<()> {
             .wrap(cors)
             .wrap(Logger::default())
             .app_data(state.clone())
-            .route("/health", web::get().to(|| async {
-                HttpResponse::Ok().json(serde_json::json!({"status": "ok"}))
-            }))
+            .route("/health", web::get().to(handlers::health))
             .route(
                 "/snapshots/{key}",
                 web::get().to(handlers::view_snapshot_html),
-            )
-            .route(
-                "/api/v1/ops_dbapi/api/network_metrics",
-                web::post().to(handlers::network_metrics),
             )
             .route(
                 "/api/v1/ops_dbapi/api/business_systems",
@@ -105,7 +103,8 @@ async fn main() -> std::io::Result<()> {
                         web::delete().to(handlers::delete_snapshot),
                     )
                     .route("/{id}/schedule", web::get().to(handlers::get_schedule))
-                    .route("/{id}/schedule", web::put().to(handlers::upsert_schedule)),
+                    .route("/{id}/schedule", web::put().to(handlers::upsert_schedule))
+                    .route("/{id}/chat", web::post().to(handlers::dashboard_chat_handler)),
             )
             .service(
                 web::scope("/api/auth")

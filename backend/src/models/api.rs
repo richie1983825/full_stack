@@ -1,10 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize)]
-pub struct ApiRequest {
-    pub params: Option<serde_json::Value>,
-}
-
 #[derive(Debug, Serialize)]
 pub struct ApiResponse<T: Serialize> {
     #[serde(rename = "errorCode")]
@@ -36,21 +31,6 @@ impl<T: Serialize> ApiResponse<T> {
             data: T::default(),
         }
     }
-}
-
-#[derive(Debug, Serialize, Clone)]
-pub struct NetworkMetric {
-    pub id: String,
-    pub created_at: Option<chrono::NaiveDateTime>,
-    pub updated_at: Option<chrono::NaiveDateTime>,
-    pub node_type: String,
-    pub metric_category: String,
-    pub metric_name: String,
-    pub unit: String,
-    pub current_value: String,
-    pub historical_peak: String,
-    pub mom_change: Option<String>,
-    pub yoy_change: Option<String>,
 }
 
 /// Grafana 风格字段元数据（列顺序 = fields 数组顺序）
@@ -111,28 +91,9 @@ pub struct UpdateDatasourceRequest {
     pub password: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TestDatasourceRequest {
-    pub db_type: String,
-    pub host: String,
-    pub port: i32,
-    pub database: String,
-    pub username: String,
-    pub password: String,
-}
-
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DatasourceQueryResult {
     pub fields: Vec<MetricFieldMeta>,
     pub rows: Vec<serde_json::Value>,
-}
-
-/// Grafana DataFrame：fields 顺序即表格列顺序
-#[derive(Debug, Serialize, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct NetworkMetricsFrame {
-    pub fields: Vec<MetricFieldMeta>,
-    pub rows: Vec<NetworkMetric>,
 }

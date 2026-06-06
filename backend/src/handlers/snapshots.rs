@@ -33,7 +33,6 @@ fn forbidden() -> HttpResponse {
 fn map_error(err: AuthError) -> HttpResponse {
     let (mut status, code) = match &err {
         AuthError::NotFound => (HttpResponse::NotFound(), "10004"),
-        AuthError::Validation(_) => (HttpResponse::BadRequest(), "10001"),
         _ => (HttpResponse::InternalServerError(), "10006"),
     };
     status.json(ApiResponse::<serde_json::Value>::error(code, &err.to_string()))

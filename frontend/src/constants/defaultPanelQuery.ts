@@ -3,8 +3,8 @@ export const DEFAULT_DATASOURCE_ID = '00000000-0000-0000-0000-000000000401';
 
 import type { PanelChartType, PanelQuery } from '../types/dashboard';
 
-/** 默认仪表盘各面板的 SQL 查询定义（Grafana 通用风格） */
-export function defaultNetworkMetricsQuery(chartType: PanelChartType): PanelQuery {
+/** 新建面板时的默认 SQL 查询 */
+export function defaultPanelQuery(chartType: PanelChartType): PanelQuery {
   switch (chartType) {
     case 'table':
       return {

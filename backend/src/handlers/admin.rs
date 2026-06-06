@@ -8,7 +8,7 @@ use crate::models::{
     UpdateRoleRequest, UpdateUserRequest,
 };
 use crate::services::{
-    auth::{self, get_user_profile, has_permission, list_permissions as list_all_permissions, AuthError},
+    auth::{get_user_profile, has_permission, list_permissions as list_all_permissions, AuthError},
     roles::{self, PermissionGroup, RoleDetail},
     users,
 };

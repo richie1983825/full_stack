@@ -113,7 +113,7 @@ export default function PanelEditorModal({
       okText="保存"
       cancelText="取消"
       width={640}
-      destroyOnClose
+      destroyOnHidden
     >
       <Form form={form} layout="vertical">
         {/* ===== 基本信息 ===== */}

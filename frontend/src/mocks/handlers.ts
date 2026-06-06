@@ -1,10 +1,9 @@
 import { http, HttpResponse } from 'msw';
 import { endpoints } from '../api/endpoints';
-import type { BusinessSystemInfo, NetworkMetric } from '../api/cmp';
-import { defaultTableFieldMeta } from '../constants/networkMetricSchema';
+import type { BusinessSystemInfo } from '../api/cmp';
+import { defaultPanelQuery } from '../constants/defaultPanelQuery';
 import type { DashboardSchedule, DashboardSnapshot } from '../types/snapshot';
 import type { PanelConfig } from '../types/dashboard';
-import { defaultNetworkMetricsQuery } from '../constants/networkMetricsQuery';
 import { hydratePanels } from '../utils/panelData';
 import { getPublicBaseUrl } from '../utils/publicUrl';
 import { renderSnapshotHtml } from '../utils/snapshotHtml';
@@ -37,48 +36,6 @@ function fail(code: string, message: string, status = 400) {
   );
 }
 
-const mockMetrics: NetworkMetric[] = [
-  {
-    id: 'mock-1',
-    created_at: '2026-05-13T00:00:00',
-    updated_at: null,
-    node_type: 'DCI线路',
-    metric_category: '资源使用率',
-    metric_name: '南方-威新主53口联通裸纤40G',
-    unit: '%',
-    current_value: '6.652',
-    historical_peak: '6.652',
-    mom_change: '1.1',
-    yoy_change: '-1.1',
-  },
-  {
-    id: 'mock-2',
-    created_at: '2026-05-13T00:00:00',
-    updated_at: null,
-    node_type: 'DCI线路',
-    metric_category: '资源使用率',
-    metric_name: '南方-威新主54口联通裸纤40G',
-    unit: '%',
-    current_value: '82.5',
-    historical_peak: '88.0',
-    mom_change: '3.2',
-    yoy_change: '1.5',
-  },
-  {
-    id: 'mock-3',
-    created_at: '2026-05-13T00:00:00',
-    updated_at: null,
-    node_type: '核心交换机',
-    metric_category: '带宽利用率',
-    metric_name: '核心节点-A 出口带宽',
-    unit: '%',
-    current_value: '45.3',
-    historical_peak: '72.1',
-    mom_change: '-2.0',
-    yoy_change: '0.8',
-  },
-];
-
 interface MockDashboard {
   id: string;
   title: string;
@@ -92,49 +49,49 @@ interface MockDashboard {
 const mockDashboards: MockDashboard[] = [
   {
     id: '00000000-0000-0000-0000-000000000301',
-    title: '网络容量日报',
-    description: '默认仪表盘：折线图、柱状图、表格',
+    title: '数据概览',
+    description: '默认仪表盘：折线图、柱状图、表格（SQL 数据源）',
     panels: [
       {
         id: 'panel-line-1',
-        title: '节点类型指标趋势',
+        title: '仪表盘创建趋势',
         chartType: 'line',
         grid: { x: 0, y: 0, w: 6, h: 3 },
-        query: defaultNetworkMetricsQuery('line'),
+        query: defaultPanelQuery('line'),
         option: {
           tooltip: { trigger: 'axis' },
           legend: { bottom: 0 },
-          xAxis: { type: 'category', data: ['指标A', '指标B'] },
+          xAxis: { type: 'category', data: ['2026-06-01', '2026-06-02'] },
           yAxis: { type: 'value' },
-          series: [{ name: 'DCI线路', type: 'line', smooth: true, data: [6.6, 82.5] }],
+          series: [{ name: 'cnt', type: 'line', smooth: true, data: [1, 2] }],
         },
       },
       {
         id: 'panel-bar-1',
-        title: 'Top10 使用率',
+        title: '用户统计',
         chartType: 'bar',
         grid: { x: 6, y: 0, w: 6, h: 3 },
-        query: defaultNetworkMetricsQuery('bar'),
+        query: defaultPanelQuery('bar'),
         option: {
           tooltip: { trigger: 'axis' },
           grid: { left: 120, right: 20, top: 20, bottom: 30 },
           xAxis: { type: 'value' },
-          yAxis: { type: 'category', data: mockMetrics.map((m) => m.metric_name) },
-          series: [{ type: 'bar', data: mockMetrics.map((m) => Number.parseFloat(m.current_value)) }],
+          yAxis: { type: 'category', data: ['admin'] },
+          series: [{ type: 'bar', data: [1] }],
         },
       },
       {
         id: 'panel-table-1',
-        title: '网络指标明细',
+        title: '用户列表',
         chartType: 'table',
         grid: { x: 0, y: 3, w: 12, h: 4 },
-        query: defaultNetworkMetricsQuery('table'),
+        query: defaultPanelQuery('table'),
         option: {
-          data: mockMetrics.map((item) => ({
-            节点类型: item.node_type,
-            指标名称: item.metric_name,
-            当前值: `${item.current_value}${item.unit}`,
-          })),
+          fields: [
+            { name: 'username', label: '用户名', type: 'string' },
+            { name: 'email', label: '邮箱', type: 'string' },
+          ],
+          data: [{ username: 'admin', email: 'admin@cmp.local' }],
         },
       },
     ],
@@ -188,17 +145,6 @@ const mockBusinessSystem: BusinessSystemInfo = {
  * 响应格式与 Rust 后端保持一致
  */
 export const handlers = [
-  http.post(apiPath(endpoints.networkMetrics), async ({ request }) => {
-    const body = (await request.json()) as { params?: { date?: string } };
-    const date = body.params?.date;
-
-    if (!date) {
-      return fail('10001', "param 'date' is required");
-    }
-
-    return ok({ fields: defaultTableFieldMeta(), rows: mockMetrics });
-  }),
-
   http.post(apiPath(endpoints.businessSystems), () => ok(mockBusinessSystem)),
 
   http.get(apiPath('/dashboards/'), () =>
