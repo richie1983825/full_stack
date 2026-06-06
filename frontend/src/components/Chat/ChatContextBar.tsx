@@ -70,7 +70,7 @@ export default function ChatContextBar() {
         </div>
         <div>
           <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>
-            参考表（可选，有助于生成更准确的 SQL）
+            选择表（多选）
           </Text>
           <Select
             mode="multiple"

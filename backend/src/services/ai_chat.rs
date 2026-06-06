@@ -223,11 +223,6 @@ async fn build_schema_context(
     ds: &datasource_entity::Model,
     reference_tables: &[String],
 ) -> Result<SchemaContext, AiChatError> {
-    let mut tables = datasource_service::list_tables(db, cfg, ds.id)
-        .await
-        .map_err(|e| AiChatError::Validation(format!("无法获取表列表: {e}")))?;
-    tables.truncate(MAX_TABLES_IN_LIST);
-
     let mut pinned: Vec<String> = reference_tables
         .iter()
         .map(|t| t.trim().to_string())
@@ -236,12 +231,11 @@ async fn build_schema_context(
     pinned.sort();
     pinned.dedup();
 
-    for table in &pinned {
-        if !tables.iter().any(|t| t.name == *table) {
-            return Err(AiChatError::Validation(format!("参考表不存在: {table}")));
-        }
+    if pinned.is_empty() {
+        return Err(AiChatError::Validation("请先选择参考表".into()));
     }
 
+    // 仅获取选中表的详细信息（不发送全量表列表）
     let mut table_columns = Vec::new();
     for table in &pinned {
         let cols = datasource_service::list_columns(db, cfg, ds.id, table)
@@ -263,14 +257,6 @@ async fn build_schema_context(
 
     let existing_panels = extract_existing_panels(&dashboard.panels);
 
-    let table_summaries: Vec<TableSummaryContext> = tables
-        .into_iter()
-        .map(|t| TableSummaryContext {
-            name: t.name,
-            comment: t.comment,
-        })
-        .collect();
-
     Ok(SchemaContext {
         datasource: DatasourceContext {
             id: ds.id.to_string(),
@@ -278,7 +264,7 @@ async fn build_schema_context(
             db_type: ds.db_type.clone(),
             database: ds.database.clone(),
         },
-        tables: table_summaries,
+        tables: vec![], // 不再发送全量表列表
         table_columns,
         variables: dashboard.variables.clone(),
         existing_panels,
