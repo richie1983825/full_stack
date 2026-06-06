@@ -16,6 +16,14 @@ interface PanelCardProps {
 }
 
 export default function PanelCard({ panel, onDelete, onEdit }: PanelCardProps) {
+  return (
+    <div data-panel-id={panel.id} style={{ height: '100%' }}>
+      <PanelCardInner panel={panel} onDelete={onDelete} onEdit={onEdit} />
+    </div>
+  );
+}
+
+function PanelCardInner({ panel, onDelete, onEdit }: PanelCardProps) {
   const menuItems = [];
   if (onEdit) {
     menuItems.push({

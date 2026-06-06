@@ -30,11 +30,12 @@ export default function MessageBubble({ message, variables, onEditPanel }: Messa
   const updatePanel = useDashboardStore((s) => s.updatePanel);
   const isUser = message.role === 'user';
   const [adding, setAdding] = useState(false);
+  const [added, setAdded] = useState(false);
   const [hydrateError, setHydrateError] = useState<string | null>(null);
   const [lastAddedPanel, setLastAddedPanel] = useState<PanelConfig | null>(null);
 
   const handleAddChart = async () => {
-    if (!message.suggestedPanel) return;
+    if (!message.suggestedPanel || added) return;
     const current = useDashboardStore.getState().currentDashboard;
     if (!current) return;
 
@@ -48,6 +49,12 @@ export default function MessageBubble({ message, variables, onEditPanel }: Messa
       const hydrated = await hydratePanelOptionStrict(panel, variables);
       updatePanel(hydrated);
       setLastAddedPanel(hydrated);
+      setAdded(true);
+      // 滚动到新增组件
+      setTimeout(() => {
+        const el = document.querySelector(`[data-panel-id="${hydrated.id}"]`);
+        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 200);
     } catch (err) {
       setHydrateError(formatAiChatError(err));
     } finally {
@@ -98,13 +105,14 @@ export default function MessageBubble({ message, variables, onEditPanel }: Messa
       {message.suggestedPanel && !isUser && !message.isError && (
         <Space orientation="vertical" size={4} style={{ marginTop: 8, alignItems: 'flex-start' }}>
           <Button
-            type="primary"
+            type={added ? 'default' : 'primary'}
             size="small"
-            icon={<PlusOutlined />}
+            icon={added ? undefined : <PlusOutlined />}
             onClick={() => void handleAddChart()}
             loading={adding}
+            disabled={added}
           >
-            添加到仪表盘
+            {added ? '已添加仪表盘' : '添加到仪表盘'}
           </Button>
           {hydrateError && (
             <>
