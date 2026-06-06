@@ -9,17 +9,15 @@ import type { MenuProps } from 'antd';
 import HomePageSettingsModal from '../components/Layout/HomePageSettingsModal';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useHomePageStore } from '../stores/useHomePageStore';
-import { isHomePath } from '../utils/homePage';
+
 
 const { Header, Content } = Layout;
 
 export default function GrafanaLayout() {
   const location = useLocation();
   const { user, logout, hasPermission } = useAuthStore();
-  const homeTarget = useHomePageStore((s) => s.target);
   const homePath = useHomePageStore((s) => s.getHomePath());
   const [homeSettingsOpen, setHomeSettingsOpen] = useState(false);
-  const onHomePage = isHomePath(location.pathname, homeTarget);
 
   const showAdmin =
     hasPermission('users:read') ||
