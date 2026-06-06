@@ -158,8 +158,10 @@ async function hydrateFromSql(
     }
     return { ...panel, option };
   } catch (err) {
+    const message = err instanceof Error ? err.message : 'SQL 查询失败';
+    console.error('[panelData] SQL query failed:', message, '\n  SQL:', sql);
     if (strict) {
-      throw err instanceof Error ? err : new Error('SQL 查询失败');
+      throw err instanceof Error ? err : new Error(message);
     }
     return { ...panel, option: {} };
   }
