@@ -1,10 +1,10 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, Navigate, Outlet, useLocation } from 'react-router-dom';
 import {
   LogoutOutlined,
   SafetyCertificateOutlined,
 } from '@ant-design/icons';
-import { Breadcrumb, Button, Dropdown, Layout, Menu } from 'antd';
+import { Button, Dropdown, Layout, Menu } from 'antd';
 import type { MenuProps } from 'antd';
 import HomePageSettingsModal from '../components/Layout/HomePageSettingsModal';
 import { useAuthStore } from '../stores/useAuthStore';
@@ -12,20 +12,6 @@ import { useHomePageStore } from '../stores/useHomePageStore';
 import { isHomePath } from '../utils/homePage';
 
 const { Header, Content } = Layout;
-
-const breadcrumbMap: Record<string, string> = {
-  '/': '仪表盘',
-  '/datasources': '数据源',
-  '/admin/users': '用户',
-  '/admin/roles': '角色',
-  '/admin/permissions': '权限',
-};
-
-function resolveBreadcrumb(pathname: string): string {
-  if (breadcrumbMap[pathname]) return breadcrumbMap[pathname];
-  if (pathname.startsWith('/dashboards/')) return '编辑仪表盘';
-  return '仪表盘';
-}
 
 export default function GrafanaLayout() {
   const location = useLocation();
@@ -110,21 +96,6 @@ export default function GrafanaLayout() {
     },
   ];
 
-  const breadcrumbItems = useMemo(() => {
-    const items: { title: ReactNode }[] = [];
-
-    if (onHomePage) {
-      items.push({ title: '首页' });
-    } else {
-      items.push({
-        title: <Link to={homePath}>首页</Link>,
-      });
-      items.push({ title: resolveBreadcrumb(location.pathname) });
-    }
-
-    return items;
-  }, [homePath, location.pathname, onHomePage]);
-
   return (
     <Layout className="grafana-shell">
       <Header className="grafana-topbar">
@@ -149,10 +120,6 @@ export default function GrafanaLayout() {
           </div>
         </div>
       </Header>
-
-      <div className="grafana-subheader">
-        <Breadcrumb items={breadcrumbItems} />
-      </div>
 
       <HomePageSettingsModal
         open={homeSettingsOpen}
