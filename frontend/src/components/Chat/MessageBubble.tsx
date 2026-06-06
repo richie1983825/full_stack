@@ -41,6 +41,7 @@ export default function MessageBubble({ message, variables, onEditPanel }: Messa
 
     setAdding(true);
     setHydrateError(null);
+    console.log('[AI panel] suggested:', JSON.stringify(message.suggestedPanel.query, null, 2));
     const panel = toPanelConfig(message.suggestedPanel, nextPanelGrid(current.panels));
     addPanel(panel);
     setLastAddedPanel(panel);
