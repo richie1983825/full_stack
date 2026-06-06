@@ -341,7 +341,9 @@ fn build_system_prompt(ctx: &SchemaContext) -> String {
 6. 一条回复最多一个 suggestedPanel
 7. content 使用简洁中文 Markdown
 8. **重要**：不要对 numeric 列使用 = '' 比较；过滤空值用 IS NOT NULL
-9. 字符串值用单引号包裹（PostgreSQL 标准）"#,
+9. 字符串值用单引号包裹（PostgreSQL 标准）
+10. **优先使用日期/时间字段作为 X 轴**：如果表中有 created_at、date、timestamp 等时间字段，折线图和柱状图应将其作为分类轴（X轴），按时间展示趋势
+11. **控制数据量**：柱状图 LIMIT 10，折线图 LIMIT 30，表格 LIMIT 20。必要时用 ORDER BY + LIMIT 取 TOP N，确保图表清晰可读"#,
         ds_id = ctx.datasource.id,
     )
 }
