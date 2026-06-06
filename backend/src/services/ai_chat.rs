@@ -112,12 +112,30 @@ pub async fn dashboard_chat(
     let schema = build_schema_context(db, cfg, &dashboard, &ds, &req.reference_tables).await?;
 
     let system_prompt = build_system_prompt(&schema);
+
+    // 取少量样本数据用于一键分析
+    let sample_data = if message == "/analyze" {
+        fetch_sample_data(db, cfg, &ds, &req.reference_tables).await
+    } else {
+        String::new()
+    };
+
     // 处理特殊命令
     let user_prompt = match message {
         "/analyze" => format!(
-            "用户点击了「一键分析」按钮。请分析当前参考表中的数据特征，给出洞察建议（如数据分布、趋势等），\
-             不要生成图表面板，只需文字分析。当前参考表：{}",
-            req.reference_tables.join(", ")
+            "## 一键分析\n\
+             请根据以下信息对选中的数据库表进行直接分析总结（**不要反问用户**）：\n\
+             - 表结构已在上文中描述（字段名、类型）\n\
+             - 下面是每张表的少量样本数据\n\
+             \n\
+             样本数据：\n{}\n\
+             \n\
+             请输出：\n\
+             1. 每张表的字段概览及含义推断\n\
+             2. 数据特征（规模、分布等）\n\
+             3. 可做的分析方向建议\n\
+             不要生成图表面板，只需 Markdown 文字分析。",
+            sample_data
         ),
         "/build_chart" => format!(
             "用户点击了「一键建图」按钮。请根据参考表的字段自动选择合适的图表类型，\
@@ -331,6 +349,50 @@ fn build_system_prompt(ctx: &SchemaContext) -> String {
 7. content 使用简洁中文 Markdown"#,
         ds_id = ctx.datasource.id,
     )
+}
+
+/// 获取参考表的样本数据（最多 5 行），格式化为文本
+async fn fetch_sample_data(
+    db: &DatabaseConnection,
+    cfg: &Config,
+    ds: &datasource_entity::Model,
+    tables: &[String],
+) -> String {
+    let mut result = String::new();
+    for table in tables {
+        let sql = format!("SELECT * FROM \"{}\" LIMIT 5", table);
+        match datasource_service::query_datasource_sql(db, cfg, ds.id, &sql).await {
+            Ok(data) => {
+                result.push_str(&format!("\n### {}\n", table));
+                if data.rows.is_empty() {
+                    result.push_str("(空表)\n");
+                } else {
+                    // 输出列名
+                    let cols: Vec<_> = data.fields.iter().map(|f| f.name.as_str()).collect();
+                    result.push_str(&format!("| {} |\n", cols.join(" | ")));
+                    result.push_str(&format!("|{}|\n", cols.iter().map(|_| "---").collect::<Vec<_>>().join("|")));
+                    for row in &data.rows {
+                        let vals: Vec<_> = cols
+                            .iter()
+                            .map(|c| {
+                                row.get(*c)
+                                    .map(|v| format!("{}", v).trim_matches('"').to_string())
+                                    .unwrap_or_default()
+                            })
+                            .collect();
+                        result.push_str(&format!("| {} |\n", vals.join(" | ")));
+                    }
+                }
+            }
+            Err(e) => {
+                result.push_str(&format!("\n### {} (查询失败: {})\n", table, e));
+            }
+        }
+    }
+    if result.is_empty() {
+        result = "(未获取到样本数据)".into();
+    }
+    result
 }
 
 fn validate_sql(sql: &str) -> Result<(), AiChatError> {
