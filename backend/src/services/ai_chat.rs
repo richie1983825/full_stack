@@ -353,7 +353,9 @@ fn build_system_prompt(ctx: &SchemaContext) -> String {
 4. 折线图/柱状图：第一列作为分类轴，其余列为数值系列
 5. 表格：SELECT 所需列即可
 6. 一条回复最多一个 suggestedPanel
-7. content 使用简洁中文 Markdown"#,
+7. content 使用简洁中文 Markdown
+8. **重要**：不要对 numeric 列使用 = '' 比较；过滤空值用 IS NOT NULL
+9. 字符串值用单引号包裹（PostgreSQL 标准）"#,
         ds_id = ctx.datasource.id,
     )
 }
