@@ -6,6 +6,9 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
+    define: {
+      'process.env.NODE_ENV': JSON.stringify(mode === 'production' ? 'production' : 'development'),
+    },
     server: {
       port: 3100,
       open: true,
