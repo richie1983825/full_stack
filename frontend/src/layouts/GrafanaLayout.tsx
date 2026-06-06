@@ -15,6 +15,7 @@ const { Header, Content } = Layout;
 
 const breadcrumbMap: Record<string, string> = {
   '/': '仪表盘',
+  '/datasources': '数据源',
   '/admin/users': '用户',
   '/admin/roles': '角色',
   '/admin/permissions': '权限',
