@@ -152,6 +152,7 @@ async function hydrateFromSql(
 
   try {
     const result = await datasourceApi.query(q.datasourceId, sql);
+    console.log('[panelData] query success:', { rows: result.rows.length, cols: result.fields.map(f => f.name), sql: sql.slice(0, 100) });
     const option = buildChartFromSqlResult(result.rows, result.fields, panel.chartType);
     if (panel.chartType === 'table') {
       return withTableGridHeight({ ...panel, option });
