@@ -208,15 +208,23 @@ pub async fn query_datasource_sql(
             for col in row.columns() {
                 let name = col.name();
                 let value: serde_json::Value = row
-                    .try_get::<String, _>(name)
-                    .map(|v| {
-                        if let Ok(n) = v.parse::<i64>() {
-                            serde_json::json!(n)
-                        } else if let Ok(n) = v.parse::<f64>() {
-                            serde_json::json!(n)
-                        } else {
-                            serde_json::json!(v)
-                        }
+                    // 优先尝试 f64（numeric/float 类型兼容）
+                    .try_get::<f64, _>(name)
+                    .map(|v| serde_json::json!(v))
+                    .or_else(|_| {
+                        row.try_get::<sqlx::types::BigDecimal, _>(name)
+                            .map(|v| {
+                                let s = v.to_string();
+                                if let Ok(n) = s.parse::<f64>() {
+                                    serde_json::json!(n)
+                                } else {
+                                    serde_json::json!(s)
+                                }
+                            })
+                    })
+                    .or_else(|_| {
+                        row.try_get::<f32, _>(name)
+                            .map(|v| serde_json::json!(v))
                     })
                     .or_else(|_| {
                         row.try_get::<i64, _>(name)
@@ -227,16 +235,20 @@ pub async fn query_datasource_sql(
                             .map(|v| serde_json::json!(v))
                     })
                     .or_else(|_| {
-                        row.try_get::<f64, _>(name)
-                            .map(|v| serde_json::json!(v))
-                    })
-                    .or_else(|_| {
-                        row.try_get::<f32, _>(name)
-                            .map(|v| serde_json::json!(v))
-                    })
-                    .or_else(|_| {
                         row.try_get::<bool, _>(name)
                             .map(|v| serde_json::json!(v))
+                    })
+                    .or_else(|_| {
+                        row.try_get::<String, _>(name)
+                            .map(|v| {
+                                if let Ok(n) = v.parse::<i64>() {
+                                    serde_json::json!(n)
+                                } else if let Ok(n) = v.parse::<f64>() {
+                                    serde_json::json!(n)
+                                } else {
+                                    serde_json::json!(v)
+                                }
+                            })
                     })
                     .or_else(|_| {
                         row.try_get::<uuid::Uuid, _>(name)

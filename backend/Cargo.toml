@@ -35,7 +35,7 @@ rand = "0.10"
 cron = "0.16"
 toml = "1"
 reqwest = { version = "0.13", features = ["json", "rustls"], default-features = false }
-sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "chrono"] }
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "chrono", "bigdecimal"] }
 sea-orm = { version = "1.1", features = [
     "sqlx-postgres",
     "runtime-tokio-rustls",
