@@ -138,8 +138,15 @@ pub async fn dashboard_chat(
             sample_data
         ),
         "/build_chart" => format!(
-            "用户点击了「一键建图」按钮。请根据参考表的字段自动选择合适的图表类型，\
-             生成一个 SQL 查询面板。优先选择有数值类型的列作为指标。当前参考表：{}",
+            "## 一键制图\n\
+             请根据参考表自动推荐一张图表（**不要反问用户，直接生成**）：\n\
+             - 自动选择合适的图表类型（line/bar/table）\n\
+             - 自动选择有意义的字段作为分类轴和数值系列\n\
+             - 生成可执行的 SELECT SQL\n\
+             \n\
+             参考表：{}\n\
+             \n\
+             **必须**在 suggestedPanel 中给出完整的面板配置。",
             req.reference_tables.join(", ")
         ),
         _ => format!("用户请求：{message}"),

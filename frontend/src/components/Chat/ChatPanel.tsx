@@ -117,7 +117,7 @@ export default function ChatPanel({ dashboardId, variables, onEditPanel }: ChatP
             onClick={handleQuickBuild}
             disabled={!datasourceId || referenceTables.length === 0 || isChatLoading}
           >
-            一键建图
+            一键制图
           </Button>
         </Space>
       </div>
