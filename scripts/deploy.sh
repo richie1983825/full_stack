@@ -32,6 +32,14 @@ fi
 
 case "${MODE}" in
   up)
+    log "Starting PostgreSQL..."
+    docker start postgres-cmp 2>/dev/null || docker run -d --name postgres-cmp \
+      --network host \
+      -e POSTGRES_USER=postgres \
+      -e POSTGRES_PASSWORD="${DB_PASSWORD:-postgres123}" \
+      -e POSTGRES_DB=cmp_service \
+      -v postgres-cmp-data:/var/lib/postgresql/data \
+      postgres:16-alpine
     log "Starting CMP services..."
     docker compose up -d --wait
     log "Services started:"
