@@ -221,10 +221,7 @@ export default function DashboardEditorPage() {
               </Button>
             </Space>
           ) : (
-            <Button type="primary" onClick={() => {
-              window.history.replaceState(null, '', '?edit=true');
-              setEditMode(true);
-            }}>
+            <Button type="primary" onClick={handleEnterEdit}>
               编辑
             </Button>
           )}
