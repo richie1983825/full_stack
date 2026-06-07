@@ -3,9 +3,8 @@ services:
     image: ${BACKEND_IMAGE:-cmp-backend:latest}
     container_name: cmp-backend
     restart: unless-stopped
-    network_mode: host
     environment:
-      DATABASE_URL: postgres://postgres:${DB_PASSWORD:-postgres123}@localhost:5432/cmp_service
+      DATABASE_URL: postgres://postgres:${DB_PASSWORD:-postgres123}@host.docker.internal:5432/cmp_service
       SERVER_HOST: 0.0.0.0
       SERVER_PORT: 3101
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
@@ -15,6 +14,8 @@ services:
       DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-chat}
       PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost}
       SNAPSHOT_DIR: /app/data/snapshots
+    ports:
+      - "3101:3101"
     volumes:
       - snapshots:/app/data/snapshots
 
@@ -22,8 +23,10 @@ services:
     image: ${FRONTEND_IMAGE:-cmp-frontend:latest}
     container_name: cmp-frontend
     restart: unless-stopped
-    network_mode: host
-
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
 
 volumes:
   snapshots:
