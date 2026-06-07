@@ -177,9 +177,6 @@ export default function DashboardEditorPage() {
             ) : (
               <h2 style={{ margin: 0 }}>{currentDashboard.title}</h2>
             )}
-            {!editMode && (
-              <Button onClick={handleEnterEdit}>编辑</Button>
-            )}
             <DatePicker
               value={dayjs(currentDashboard.variables?.date ?? defaultDate)}
               onChange={(value) => {
@@ -205,7 +202,7 @@ export default function DashboardEditorPage() {
               快照
             </Button>
           </Space>
-          {editMode && (
+          {editMode ? (
             <Space wrap>
               <Dropdown menu={{ items: addMenuItems }}>
                 <Button icon={<PlusOutlined />}>添加组件</Button>
@@ -223,6 +220,13 @@ export default function DashboardEditorPage() {
                 保存
               </Button>
             </Space>
+          ) : (
+            <Button type="primary" onClick={() => {
+              window.history.replaceState(null, '', '?edit=true');
+              setEditMode(true);
+            }}>
+              编辑
+            </Button>
           )}
         </div>
       </div>
