@@ -1,0 +1,56 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: cmp-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres123}
+      POSTGRES_DB: cmp_service
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    image: ${BACKEND_IMAGE:-cmp-backend:latest}
+    container_name: cmp-backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://postgres:${DB_PASSWORD:-postgres123}@db:5432/cmp_service
+      SERVER_HOST: 0.0.0.0
+      SERVER_PORT: 3101
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      JWT_EXPIRES_HOURS: "24"
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      DEEPSEEK_API_BASE_URL: ${DEEPSEEK_API_BASE_URL:-https://api.deepseek.com}
+      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-chat}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost}
+      SNAPSHOT_DIR: /app/data/snapshots
+    ports:
+      - "3101:3101"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - snapshots:/app/data/snapshots
+
+  frontend:
+    image: ${FRONTEND_IMAGE:-cmp-frontend:latest}
+    container_name: cmp-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
+  snapshots:
