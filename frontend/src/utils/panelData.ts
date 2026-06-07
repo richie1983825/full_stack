@@ -150,26 +150,26 @@ async function hydrateFromSql(
       : panel;
   }
 
-  // 查询数据源，失败时自动尝试其他可用数据源
-  let result;
   try {
-    result = await datasourceApi.query(q.datasourceId, sql);
-  } catch (firstErr) {
-    // 尝试用列表中的第一个数据源兜底
+    // 查询数据源，失败时自动尝试其他可用数据源
+    let result;
     try {
-      const list = await datasourceApi.list();
-      const fallback = list.find((ds) => ds.id !== q.datasourceId);
-      if (fallback) {
-        result = await datasourceApi.query(fallback.id, sql);
-        console.warn('[panelData] datasource fallback used:', fallback.name);
-      } else {
+      result = await datasourceApi.query(q.datasourceId, sql);
+    } catch (firstErr) {
+      try {
+        const list = await datasourceApi.list();
+        const fallback = list.find((ds) => ds.id !== q.datasourceId);
+        if (fallback) {
+          result = await datasourceApi.query(fallback.id, sql);
+          console.warn('[panelData] datasource fallback used:', fallback.name);
+        } else {
+          throw firstErr;
+        }
+      } catch {
         throw firstErr;
       }
-    } catch {
-      throw firstErr;
     }
-  }
-  console.log('[panelData] query success:', { rows: result.rows.length, cols: result.fields.map(f => f.name), sql: sql.slice(0, 100) });
+    console.log('[panelData] query success:', { rows: result.rows.length, cols: result.fields.map(f => f.name), sql: sql.slice(0, 100) });
     const option = buildChartFromSqlResult(result.rows, result.fields, panel.chartType);
     if (panel.chartType === 'table') {
       return withTableGridHeight({ ...panel, option });
